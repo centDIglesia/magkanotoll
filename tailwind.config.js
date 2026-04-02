@@ -1,0 +1,55 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  darkMode: "class", 
+  theme: {
+    extend: {
+      colors: {
+       
+        background: "#f5f5f5",
+        foreground: "#332300",
+        card: "#ffffff",
+        "card-foreground": "#0a0a0a",
+        popover: "#ffffff",
+        "popover-foreground": "#0a0a0a",
+        primary: "#332300",
+        "primary-foreground": "#fafafa",
+        secondary: "#f5f5f5",
+        "secondary-foreground": "#171717",
+        muted: "#f5f5f5",
+        "muted-foreground": "#737373",
+        accent: "#ffc400",
+        "accent-foreground": "#171717",
+        destructive: "#e7000b",
+        "destructive-foreground": "#ffffff",
+        border: "#e5e5e5",
+        input: "#e5e5e5",
+        ring: "#a1a1a1",
+
+        dark: {
+          background: "#ebebeb",
+          foreground: "#291c00",
+          card: "#09090b",
+          "card-foreground": "#fafafa",
+          popover: "#09090b",
+          "popover-foreground": "#fafafa",
+          primary: "#fafafa",
+          "primary-foreground": "#18181b",
+          secondary: "#27272a",
+          "secondary-foreground": "#fafafa",
+          muted: "#27272a",
+          "muted-foreground": "#a1a1aa",
+          accent: "#ffc400", // Keep yellow accent for brand consistency
+          "accent-foreground": "#09090b",
+          destructive: "#7f1d1d",
+          "destructive-foreground": "#fafafa",
+          border: "#27272a",
+          input: "#27272a",
+          ring: "#d4d4d8",
+        },
+      },
+    },
+  },
+  plugins: [],
+};
