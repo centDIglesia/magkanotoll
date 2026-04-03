@@ -74,6 +74,11 @@ export default function AppModal({
   );
 }
 
+const styles = StyleSheet.create({
+  bold: { fontFamily: "LufgaBold" },
+  body: { fontFamily: "LufgaRegular" },
+});
+
 // Hook for easy usage
 import { useState } from "react";
 
