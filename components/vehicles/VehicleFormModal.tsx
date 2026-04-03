@@ -3,7 +3,6 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Car01Icon, PlugSocketIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AppModal, { useAppModal } from "@/components/AppModal";
 import {
   CLASS_LABELS,
   FUEL_OPTIONS,
@@ -26,6 +26,7 @@ interface Props {
 
 export default function VehicleFormModal({ initial, onClose }: Props) {
   const { addVehicle, updateVehicle } = useVehicleStore();
+  const { show, modalProps } = useAppModal();
 
   const [nickname, setNickname] = useState(initial?.nickname ?? "");
   const [vehicleClass, setVehicleClass] = useState<1 | 2 | 3>(
@@ -62,7 +63,7 @@ export default function VehicleFormModal({ initial, onClose }: Props) {
       }
       onClose();
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Failed to save vehicle.");
+      show({ type: "error", title: "Error", message: e.message ?? "Failed to save vehicle.", confirmLabel: "OK" });
     } finally {
       setSaving(false);
     }
@@ -239,6 +240,7 @@ export default function VehicleFormModal({ initial, onClose }: Props) {
           </ScrollView>
         </Pressable>
       </Pressable>
+      <AppModal {...modalProps} />
     </Modal>
   );
 }

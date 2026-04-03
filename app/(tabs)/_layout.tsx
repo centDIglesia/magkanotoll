@@ -3,10 +3,9 @@ import { Platform, View } from "react-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   Home01Icon,
-  TransactionHistoryIcon,
-  AllBookmarkIcon,
   CreditCardIcon,
   CompassIcon,
+  UserCircleIcon,
 } from "@hugeicons/core-free-icons";
 
 export default function TabsLayout() {
@@ -24,7 +23,6 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: "white",
           borderTopWidth: 0,
-          // Elevate the bar and ensure corners are visible
           position: "absolute",
           bottom: 0,
           left: 0,
@@ -34,8 +32,6 @@ export default function TabsLayout() {
           paddingInline: 8,
           borderTopLeftRadius: 22,
           borderTopRightRadius: 22,
-         
-          
         },
       }}
     >
@@ -44,50 +40,8 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "Home",
           tabBarIcon: ({ focused }) => (
-            <View
-              className={`items-center justify-center rounded-2xl p-4 py-5   ${focused ? "bg-accent/10 mb-6 " : "mb-4"}`}
-            >
-              <HugeiconsIcon
-                icon={Home01Icon}
-                size={24}
-                color={focused ? "#ffc400" : "#A3A3A3"}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="history"
-        options={{
-          tabBarLabel: "History",
-          tabBarIcon: ({ focused }) => (
-            <View
-              className={`items-center justify-center rounded-2xl p-4 py-5   ${focused ? "bg-accent/10 mb-6 " : "mb-4"}`}
-            >
-              <HugeiconsIcon
-                icon={TransactionHistoryIcon}
-                size={24}
-                color={focused ? "#ffc400" : "#A3A3A3"}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="saved"
-        options={{
-          tabBarLabel: "Saved",
-          tabBarIcon: ({ focused }) => (
-           <View
-              className={`items-center justify-center rounded-2xl p-4 py-5   ${focused ? "bg-accent/10 mb-6 " : "mb-4"}`}
-            >
-              <HugeiconsIcon
-                icon={AllBookmarkIcon}
-                size={24}
-                color={focused ? "#ffc400" : "#A3A3A3"}
-              />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={Home01Icon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
             </View>
           ),
         }}
@@ -98,14 +52,8 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "RFID",
           tabBarIcon: ({ focused }) => (
-            <View
-              className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}
-            >
-              <HugeiconsIcon
-                icon={CreditCardIcon}
-                size={24}
-                color={focused ? "#ffc400" : "#A3A3A3"}
-              />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={CreditCardIcon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
             </View>
           ),
         }}
@@ -116,18 +64,28 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "Explore",
           tabBarIcon: ({ focused }) => (
-            <View
-              className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}
-            >
-              <HugeiconsIcon
-                icon={CompassIcon}
-                size={24}
-                color={focused ? "#ffc400" : "#A3A3A3"}
-              />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={CompassIcon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
             </View>
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ focused }) => (
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={UserCircleIcon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Hidden — content moved into Profile tab */}
+      <Tabs.Screen name="history" options={{ href: null }} />
+      <Tabs.Screen name="saved" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -2,7 +2,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["@hugeicons/reactnative", "@hugeicons/core-free-icons"],
+    "types": ["@hugeicons/core-free-icons"],
     "paths": {
       "@/*": ["./*"]
     }

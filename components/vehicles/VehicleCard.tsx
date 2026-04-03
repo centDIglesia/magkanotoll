@@ -7,7 +7,8 @@ import {
   PencilEdit01Icon,
   PlugSocketIcon,
 } from "@hugeicons/core-free-icons";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import AppModal, { useAppModal } from "@/components/AppModal";
 import { CLASS_SHORT } from "./VehicleConstants";
 
 interface Props {
@@ -18,16 +19,17 @@ interface Props {
 
 export default function VehicleCard({ vehicle, onEdit, onDelete }: Props) {
   const isElectric = vehicle.fuel_type?.toLowerCase().includes("electric");
+  const { show, modalProps } = useAppModal();
 
   const handleDeletePress = () => {
-    Alert.alert(
-      "Remove Vehicle",
-      `Remove "${vehicle.nickname}"? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Remove", style: "destructive", onPress: onDelete },
-      ],
-    );
+    show({
+      type: "confirm",
+      title: "Remove Vehicle",
+      message: `Remove "${vehicle.nickname}"? This cannot be undone.`,
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
+      onConfirm: onDelete,
+    });
   };
 
   return (
@@ -114,6 +116,7 @@ export default function VehicleCard({ vehicle, onEdit, onDelete }: Props) {
           </View>
         ) : null}
       </View>
+      <AppModal {...modalProps} />
     </View>
   );
 }

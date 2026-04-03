@@ -1,5 +1,7 @@
 import InfoModal, { InfoButton } from "@/components/InfoModal";
 import { useSavedRoutesStore } from "@/stores/useSavedRoutesStore";
+import { useVehicleStore } from "@/stores/useVehicleStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import {
   AlternativeRoute,
   TollCalculatorResponse,
@@ -49,6 +51,8 @@ export default function TollResult({
   vehicleClass: VehicleClass;
 }) {
   const { addRoute } = useSavedRoutesStore();
+  const { vehicles, fetchVehicles } = useVehicleStore();
+  const { isAnonymous } = useAuthStore();
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [label, setLabel] = useState("");
   const [saving, setSaving] = useState(false);
@@ -61,13 +65,22 @@ export default function TollResult({
   const displayTotal = activeAlt ? activeAlt.totalToll : result.totalToll;
 
   useEffect(() => {
+    if (!isAnonymous) fetchVehicles();
+  }, [isAnonymous]);
+
+  const activeVehicle = !isAnonymous && vehicles.length > 0 ? vehicles[0] : null;
+  const engineCc = activeVehicle?.engine_cc ? parseInt(activeVehicle.engine_cc) : undefined;
+  const fuelType = activeVehicle?.fuel_type ?? undefined;
+  const isElectric = activeVehicle?.fuel_type?.toLowerCase().includes("electric") ?? false;
+
+  useEffect(() => {
     setStatsLoading(true);
     setTripStats(null);
-    fetchOsrmTripStats(displaySegments, vehicleClass)
+    fetchOsrmTripStats(displaySegments, vehicleClass, engineCc, fuelType)
       .then(setTripStats)
       .catch(() => setTripStats(null))
       .finally(() => setStatsLoading(false));
-  }, [activeAlt, vehicleClass]);
+  }, [activeAlt, vehicleClass, engineCc, fuelType]);
 
   const handleSave = async () => {
     if (!label.trim()) return;
@@ -134,11 +147,21 @@ export default function TollResult({
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
               <HugeiconsIcon icon={FuelStationIcon} size={16} color="#ffc400" />
               <Text className="text-white text-sm mt-1" style={styles.bold}>
-                {statsLoading ? "..." : tripStats ? `~${tripStats.gasLiters.toFixed(1)}L` : "N/A"}
+                {isElectric ? "—" : statsLoading ? "..." : tripStats ? `~${tripStats.gasLiters.toFixed(1)}L` : "N/A"}
               </Text>
-              <Text className="text-white/50 text-[10px]" style={styles.body}>Gas</Text>
+              <Text className="text-white/50 text-[10px]" style={styles.body}>
+                {isElectric ? "Electric" : statsLoading || !tripStats ? "Gas" : `${tripStats.effectiveKmL} km/L`}
+              </Text>
             </View>
           </View>
+          {activeVehicle && (
+            <View className="flex-row items-center gap-1.5 mt-3 bg-white/10 rounded-xl px-3 py-2">
+              <HugeiconsIcon icon={FuelStationIcon} size={12} color="#ffc400" />
+              <Text className="text-white/70 text-[10px] flex-1" style={styles.body}>
+                Based on {activeVehicle.nickname} · {activeVehicle.engine_cc ? `${activeVehicle.engine_cc}cc` : ""}{activeVehicle.fuel_type ? ` · ${activeVehicle.fuel_type}` : ""}
+              </Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -253,7 +276,12 @@ export default function TollResult({
 
       <RouteMap segments={displaySegments} />
 
-      <TripCostSharing totalToll={displayTotal} gasLiters={tripStats?.gasLiters ?? null} />
+      <TripCostSharing
+        totalToll={displayTotal}
+        gasLiters={tripStats?.gasLiters ?? null}
+        activeVehicle={activeVehicle}
+        effectiveKmL={tripStats?.effectiveKmL}
+      />
 
       {/* RFID Wallets */}
       {result.rfidBreakdown.length > 0 && (

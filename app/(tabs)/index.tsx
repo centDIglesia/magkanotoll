@@ -54,6 +54,8 @@ export default function Calculator() {
   const [activeAlt, setActiveAlt] = useState<AlternativeRoute | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  const resultYRef = useRef<number>(0);
 
   useEffect(() => {
     if (result) {
@@ -102,13 +104,15 @@ export default function Calculator() {
         class: vehicleClass,
       });
       setResult(data);
-
       await addEntry({
         origin: origin.trim(),
         destination: destination.trim(),
         vehicleClass,
         result: data,
       });
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: resultYRef.current, animated: true });
+      }, 350);
     } catch (e: any) {
       const isNotice = e.message?.toLowerCase().includes("no route");
       setErrorType(isNotice ? "notice" : "error");
@@ -131,6 +135,7 @@ export default function Calculator() {
     <SafeAreaView className="flex-1 bg-[#f7f7f7]" edges={[]}>
       <FloatingHeader title="MagkanoToll" />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -308,15 +313,17 @@ export default function Calculator() {
         </LinearGradient>
 
         {result && (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <TollResult
+          <View onLayout={(e) => { resultYRef.current = e.nativeEvent.layout.y; }}>
+            <Animated.View style={{ opacity: fadeAnim }}>
+              <TollResult
               result={result}
               activeAlt={activeAlt}
               onAltChange={setActiveAlt}
               onReset={reset}
               vehicleClass={vehicleClass}
             />
-          </Animated.View>
+            </Animated.View>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
