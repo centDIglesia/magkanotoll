@@ -122,7 +122,7 @@ export default function Calculator() {
         vehicleClass,
         result: data,
       });
-      // ← auto-scroll removed
+
     } catch (e: any) {
       const isNotice = e.message?.toLowerCase().includes("no route");
       setErrorType(isNotice ? "notice" : "error");

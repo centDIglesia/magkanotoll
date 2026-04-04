@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
-  Car01Icon,
   RouteIcon,
   WalletCardsIcon,
   Clock01Icon,
@@ -25,11 +24,23 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-// All slides use primary (#171717) + accent (#ffc400) + white only
+const COLORS = {
+  background: "#f5f5f5",
+  foreground: "#332300",
+  card: "#ffffff",
+  cardForeground: "#0a0a0a",
+  primary: "#332300",
+  primaryForeground: "#fafafa",
+  mutedForeground: "#737373",
+  accent: "#ffc400",
+  accentForeground: "#171717",
+  border: "#e5e5e5",
+};
+
 const SLIDES = [
   {
     id: "1",
-    icon: null, // slide 1 shows logo instead
+    icon: null,
     tag: "Welcome",
     title: "MagkanoToll",
     subtitle:
@@ -87,7 +98,7 @@ export default function Onboarding() {
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { useNativeDriver: false },
+    { useNativeDriver: false }
   );
 
   const handleMomentumEnd = (e: any) => {
@@ -96,10 +107,9 @@ export default function Onboarding() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#171717" }}>
-      <StatusBar barStyle="light-content" />
+    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* ── Slides ── */}
       <Animated.FlatList
         ref={flatListRef}
         data={SLIDES}
@@ -116,11 +126,13 @@ export default function Onboarding() {
             index * width,
             (index + 1) * width,
           ];
+
           const opacity = scrollX.interpolate({
             inputRange,
             outputRange: [0, 1, 0],
             extrapolate: "clamp",
           });
+
           const translateY = scrollX.interpolate({
             inputRange,
             outputRange: [30, 0, 30],
@@ -130,21 +142,23 @@ export default function Onboarding() {
           return (
             <View style={{ width, height }}>
               <LinearGradient
-                colors={["#2a1f00", "#171717"]}
+                colors={["#fff8e1", COLORS.background]}
                 style={StyleSheet.absoluteFillObject}
               />
 
-              {/* Decorative rings */}
               <View style={styles.ring1} />
               <View style={styles.ring2} />
 
               <Animated.View
                 style={[
                   styles.slideContent,
-                  { paddingTop: insets.top + 60, opacity, transform: [{ translateY }] },
+                  {
+                    paddingTop: insets.top + 60,
+                    opacity,
+                    transform: [{ translateY }],
+                  },
                 ]}
               >
-                {/* Slide 1 — logo; others — HugeIcon */}
                 {item.id === "1" ? (
                   <View style={styles.logoWrap}>
                     <Image
@@ -155,19 +169,15 @@ export default function Onboarding() {
                   </View>
                 ) : (
                   <View style={styles.iconWrap}>
-                    <HugeiconsIcon icon={item.icon!} size={44} color="#ffc400" />
+                    <HugeiconsIcon icon={item.icon!} size={44} color={COLORS.accent} />
                   </View>
                 )}
 
-                {/* Tag pill */}
                 <View style={styles.tag}>
                   <Text style={styles.tagText}>{item.tag}</Text>
                 </View>
 
-                {/* Title */}
                 <Text style={styles.title}>{item.title}</Text>
-
-                {/* Subtitle */}
                 <Text style={styles.subtitle}>{item.subtitle}</Text>
               </Animated.View>
             </View>
@@ -175,10 +185,7 @@ export default function Onboarding() {
         }}
       />
 
-      {/* ── Bottom controls ── */}
       <View style={[styles.bottomSheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-
-        {/* Dots */}
         <View style={styles.dots}>
           {SLIDES.map((_, i) => {
             const dotWidth = scrollX.interpolate({
@@ -186,11 +193,13 @@ export default function Onboarding() {
               outputRange: [8, 24, 8],
               extrapolate: "clamp",
             });
+
             const dotOpacity = scrollX.interpolate({
               inputRange: [(i - 1) * width, i * width, (i + 1) * width],
               outputRange: [0.3, 1, 0.3],
               extrapolate: "clamp",
             });
+
             return (
               <Animated.View
                 key={i}
@@ -200,21 +209,20 @@ export default function Onboarding() {
           })}
         </View>
 
-        {/* Counter */}
-        <Text style={styles.counter}>{activeIndex + 1} / {SLIDES.length}</Text>
+        <Text style={styles.counter}>
+          {activeIndex + 1} / {SLIDES.length}
+        </Text>
 
-        {/* CTA */}
         <Pressable
           onPress={isLast ? handleGetStarted : handleNext}
           style={({ pressed }) => [styles.ctaButton, { opacity: pressed ? 0.85 : 1 }]}
         >
           <Text style={styles.ctaText}>{isLast ? "Get Started" : "Next"}</Text>
           <View style={styles.ctaIconWrap}>
-            <HugeiconsIcon icon={ArrowRight01Icon} size={18} color="#ffc400" />
+            <HugeiconsIcon icon={ArrowRight01Icon} size={18} color={COLORS.accent} />
           </View>
         </Pressable>
 
-        {/* Skip */}
         {!isLast && (
           <Pressable onPress={handleGetStarted} style={styles.skipBtn}>
             <Text style={styles.skipText}>Skip for now</Text>
@@ -232,14 +240,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
 
-  // Decorative rings — accent color
   ring1: {
     position: "absolute",
     width: width * 1.1,
     height: width * 1.1,
     borderRadius: width,
     borderWidth: 1,
-    borderColor: "#ffc40018",
+    borderColor: "#ffc40022",
     top: -width * 0.25,
     alignSelf: "center",
   },
@@ -249,12 +256,11 @@ const styles = StyleSheet.create({
     height: width * 0.75,
     borderRadius: width,
     borderWidth: 1,
-    borderColor: "#ffc40010",
+    borderColor: "#ffc40014",
     top: -width * 0.05,
     alignSelf: "center",
   },
 
-  // Slide 1 logo
   logoWrap: {
     width: 160,
     height: 80,
@@ -267,7 +273,6 @@ const styles = StyleSheet.create({
     height: 60,
   },
 
-  // Other slides icon
   iconWrap: {
     width: 100,
     height: 100,
@@ -284,7 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     paddingHorizontal: 14,
     paddingVertical: 5,
-    backgroundColor: "#ffc40025",
+    backgroundColor: "#ffc40022",
     marginBottom: 16,
   },
   tagText: {
@@ -292,12 +297,12 @@ const styles = StyleSheet.create({
     fontFamily: "LufgaSemiBold",
     textTransform: "uppercase",
     letterSpacing: 1.5,
-    color: "#ffc400",
+    color: "#332300",
   },
   title: {
     fontSize: 42,
     fontFamily: "LufgaBlack",
-    color: "#ffffff",
+    color: "#332300",
     textAlign: "center",
     lineHeight: 50,
     marginBottom: 16,
@@ -305,13 +310,12 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     fontFamily: "LufgaRegular",
-    color: "rgba(255,255,255,0.6)",
+    color: "#737373",
     textAlign: "center",
     lineHeight: 24,
     maxWidth: 300,
   },
 
-  // Bottom sheet
   bottomSheet: {
     position: "absolute",
     bottom: 0,
@@ -319,9 +323,9 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 28,
     paddingTop: 24,
-    backgroundColor: "rgba(23,23,23,0.97)",
+    backgroundColor: "rgba(255,255,255,0.96)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,196,0,0.08)",
+    borderTopColor: "#e5e5e5",
   },
   dots: {
     flexDirection: "row",
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffc400",
   },
   counter: {
-    color: "rgba(255,255,255,0.3)",
+    color: "#737373",
     fontSize: 11,
     fontFamily: "LufgaRegular",
     textAlign: "center",
@@ -350,12 +354,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     marginBottom: 4,
-    backgroundColor: "#171717",
+    backgroundColor: "#ffffff",
     borderWidth: 1.5,
     borderColor: "#ffc400",
   },
   ctaText: {
-    color: "#ffffff",
+    color: "#332300",
     fontSize: 16,
     fontFamily: "LufgaBold",
   },
@@ -372,7 +376,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   skipText: {
-    color: "rgba(255,255,255,0.35)",
+    color: "#737373",
     fontSize: 13,
     fontFamily: "LufgaRegular",
   },

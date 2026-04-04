@@ -1,6 +1,5 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { User03Icon, Mail01Icon, LockPasswordIcon, ViewIcon, ViewOffIcon, CheckmarkSquare01Icon, SquareIcon } from "@hugeicons/core-free-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
