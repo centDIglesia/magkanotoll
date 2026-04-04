@@ -19,13 +19,14 @@ import {
   TrafficLightIcon,
   WalletCardsIcon,
   MapsSquare01Icon,
+  CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Linking,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,7 +37,113 @@ import {
 } from "react-native";
 import RouteMap from "./RouteMap";
 import TripCostSharing from "./TripCostSharing";
+import Skeleton from "@/components/Skeleton";
 
+// ── Label input with animated save confirmation ──────────────────────────────
+function SaveRouteInline({
+  origin,
+  destination,
+  onSave,
+}: {
+  origin: string;
+  destination: string;
+  onSave: (label: string) => Promise<void>;
+}) {
+  const [label, setLabel] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const checkScale = useRef(new Animated.Value(0)).current;
+
+  const handleSave = async () => {
+    if (!label.trim() || saving) return;
+    setSaving(true);
+    await onSave(label.trim());
+    setSaving(false);
+    setSaved(true);
+    setLabel("");
+    Animated.spring(checkScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      damping: 10,
+      stiffness: 180,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(checkScale, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => setSaved(false));
+      }, 1800);
+    });
+  };
+
+  return (
+    <View className="mt-8 mb-4">
+      {/* Section label */}
+      <Text
+        className="text-muted-foreground text-sm mb-3 ml-1"
+        style={styles.semibold}
+      >
+        Save This Route
+      </Text>
+
+      <View className="bg-white rounded-3xl border border-neutral-100 px-5 pt-5 pb-5">
+        <Text className="text-foreground text-sm mb-1" style={styles.semibold}>
+          {origin} → {destination}
+        </Text>
+        <Text
+          className="text-muted-foreground text-xs mb-4"
+          style={styles.body}
+        >
+          Give this route a name to find it quickly later.
+        </Text>
+
+        <View className="flex-row gap-3 items-center">
+          <TextInput
+            className="flex-1 bg-neutral-100 rounded-2xl px-4 py-3 text-foreground text-sm"
+            style={styles.body}
+            placeholder="e.g. Daily Commute"
+            placeholderTextColor="#A3A3A3"
+            value={label}
+            onChangeText={setLabel}
+            returnKeyType="done"
+            onSubmitEditing={handleSave}
+            editable={!saving && !saved}
+          />
+
+          {saved ? (
+            <Animated.View
+              style={{ transform: [{ scale: checkScale }] }}
+              className="w-12 h-12 rounded-2xl bg-green-500 items-center justify-center"
+            >
+              <HugeiconsIcon
+                icon={CheckmarkCircle01Icon}
+                size={22}
+                color="#fff"
+              />
+            </Animated.View>
+          ) : (
+            <Pressable
+              onPress={handleSave}
+              disabled={!label.trim() || saving}
+              className={`w-12 h-12 rounded-2xl items-center justify-center ${
+                !label.trim() || saving ? "bg-neutral-200" : "bg-primary"
+              }`}
+            >
+              <HugeiconsIcon
+                icon={BookmarkAdd01Icon}
+                size={20}
+                color={!label.trim() || saving ? "#A3A3A3" : "#fff"}
+              />
+            </Pressable>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function TollResult({
   result,
   activeAlt,
@@ -53,9 +160,6 @@ export default function TollResult({
   const { addRoute } = useSavedRoutesStore();
   const { vehicles, fetchVehicles } = useVehicleStore();
   const { isAnonymous } = useAuthStore();
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [label, setLabel] = useState("");
-  const [saving, setSaving] = useState(false);
   const [showRfidInfo, setShowRfidInfo] = useState(false);
   const [showBreakdownInfo, setShowBreakdownInfo] = useState(false);
   const [tripStats, setTripStats] = useState<TripStats | null>(null);
@@ -68,10 +172,14 @@ export default function TollResult({
     if (!isAnonymous) fetchVehicles();
   }, [isAnonymous]);
 
-  const activeVehicle = !isAnonymous && vehicles.length > 0 ? vehicles[0] : null;
-  const engineCc = activeVehicle?.engine_cc ? parseInt(activeVehicle.engine_cc) : undefined;
+  const activeVehicle =
+    !isAnonymous && vehicles.length > 0 ? vehicles[0] : null;
+  const engineCc = activeVehicle?.engine_cc
+    ? parseInt(activeVehicle.engine_cc)
+    : undefined;
   const fuelType = activeVehicle?.fuel_type ?? undefined;
-  const isElectric = activeVehicle?.fuel_type?.toLowerCase().includes("electric") ?? false;
+  const isElectric =
+    activeVehicle?.fuel_type?.toLowerCase().includes("electric") ?? false;
 
   useEffect(() => {
     setStatsLoading(true);
@@ -82,30 +190,24 @@ export default function TollResult({
       .finally(() => setStatsLoading(false));
   }, [activeAlt, vehicleClass, engineCc, fuelType]);
 
-  const handleSave = async () => {
-    if (!label.trim()) return;
-    setSaving(true);
+  const handleSaveRoute = async (label: string) => {
     await addRoute({
-      label: label.trim(),
+      label,
       origin: result.origin,
       destination: result.destination,
       vehicleClass,
       totalToll: result.totalToll,
     });
-    setSaving(false);
-    setLabel("");
-    setShowSaveModal(false);
   };
 
   return (
     <>
-      {/* Hero */}
-
+      {/* ── Hero ──────────────────────────────────────────── */}
       <LinearGradient
         colors={["#4b3300", "#0f0f0f"]}
-       className="rounded-3xl overflow-hidden border"
+        className="rounded-3xl overflow-hidden border"
       >
-        <View className=" rounded-3xl items-center p-8  gap-1 ">
+        <View className="rounded-3xl items-center p-8 gap-1">
           <Text
             className="text-white/60 text-sm uppercase tracking-[1px]"
             style={styles.body}
@@ -129,43 +231,70 @@ export default function TollResult({
           >
             {result.origin} → {result.destination}
           </Text>
+
+          {/* Stat tiles */}
           <View className="flex-row gap-4 mt-4">
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
               <HugeiconsIcon icon={Clock01Icon} size={16} color="#ffc400" />
-              <Text className="text-white text-sm mt-1" style={styles.bold}>
-                {statsLoading ? "..." : tripStats ? `~${tripStats.etaMinutes} min` : "N/A"}
-              </Text>
+              {statsLoading ? (
+                <Skeleton width={48} height={14} radius={6} style={{ marginTop: 6, marginBottom: 2, backgroundColor: "rgba(255,255,255,0.2)" }} />
+              ) : (
+                <Text className="text-white text-sm mt-1" style={styles.bold}>
+                  {tripStats ? `~${tripStats.etaMinutes} min` : "N/A"}
+                </Text>
+              )}
               <Text className="text-white/50 text-[10px]" style={styles.body}>ETA</Text>
             </View>
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
               <HugeiconsIcon icon={DashboardSpeed02Icon} size={16} color="#ffc400" />
-              <Text className="text-white text-sm mt-1" style={styles.bold}>
-                {statsLoading ? "..." : tripStats ? `~${tripStats.totalKm} km` : "N/A"}
-              </Text>
+              {statsLoading ? (
+                <Skeleton width={48} height={14} radius={6} style={{ marginTop: 6, marginBottom: 2, backgroundColor: "rgba(255,255,255,0.2)" }} />
+              ) : (
+                <Text className="text-white text-sm mt-1" style={styles.bold}>
+                  {tripStats ? `~${tripStats.totalKm} km` : "N/A"}
+                </Text>
+              )}
               <Text className="text-white/50 text-[10px]" style={styles.body}>Distance</Text>
             </View>
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
               <HugeiconsIcon icon={FuelStationIcon} size={16} color="#ffc400" />
-              <Text className="text-white text-sm mt-1" style={styles.bold}>
-                {isElectric ? "—" : statsLoading ? "..." : tripStats ? `~${tripStats.gasLiters.toFixed(1)}L` : "N/A"}
-              </Text>
-              <Text className="text-white/50 text-[10px]" style={styles.body}>
-                {isElectric ? "Electric" : statsLoading || !tripStats ? "Gas" : `${tripStats.effectiveKmL} km/L`}
-              </Text>
+              {statsLoading && !isElectric ? (
+                <Skeleton width={48} height={14} radius={6} style={{ marginTop: 6, marginBottom: 2, backgroundColor: "rgba(255,255,255,0.2)" }} />
+              ) : (
+                <Text className="text-white text-sm mt-1" style={styles.bold}>
+                  {isElectric ? "—" : tripStats ? `~${tripStats.gasLiters.toFixed(1)}L` : "N/A"}
+                </Text>
+              )}
+              {statsLoading && !isElectric ? (
+                <Skeleton width={36} height={10} radius={4} style={{ marginTop: 2, backgroundColor: "rgba(255,255,255,0.15)" }} />
+              ) : (
+                <Text className="text-white/50 text-[10px]" style={styles.body}>
+                  {isElectric ? "Electric" : tripStats ? `${tripStats.effectiveKmL} km/L` : "Gas"}
+                </Text>
+              )}
             </View>
           </View>
+
+          {/* Vehicle badge */}
           {activeVehicle && (
             <View className="flex-row items-center gap-1.5 mt-3 bg-white/10 rounded-xl px-3 py-2">
               <HugeiconsIcon icon={FuelStationIcon} size={12} color="#ffc400" />
-              <Text className="text-white/70 text-[10px] flex-1" style={styles.body}>
-                Based on {activeVehicle.nickname} · {activeVehicle.engine_cc ? `${activeVehicle.engine_cc}cc` : ""}{activeVehicle.fuel_type ? ` · ${activeVehicle.fuel_type}` : ""}
+              <Text
+                className="text-white/70 text-[10px] flex-1"
+                style={styles.body}
+              >
+                Based on {activeVehicle.nickname}
+                {activeVehicle.engine_cc
+                  ? ` · ${activeVehicle.engine_cc}cc`
+                  : ""}
+                {activeVehicle.fuel_type ? ` · ${activeVehicle.fuel_type}` : ""}
               </Text>
             </View>
           )}
         </View>
       </LinearGradient>
 
-      {/* Alternative Routes */}
+      {/* ── Alternative Routes ────────────────────────────── */}
       {result.alternativeRoutes.length > 0 && (
         <>
           <Text
@@ -177,7 +306,11 @@ export default function TollResult({
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
               activeOpacity={0.8}
-              className={`px-5 py-3 rounded-2xl mr-3 border-2 ${!activeAlt ? "bg-primary border-primary" : "bg-white border-neutral-100"}`}
+              className={`px-5 py-3 rounded-2xl mr-3 border-2 ${
+                !activeAlt
+                  ? "bg-primary border-primary"
+                  : "bg-white border-neutral-100"
+              }`}
               onPress={() => onAltChange(null)}
             >
               <Text
@@ -197,17 +330,29 @@ export default function TollResult({
               <TouchableOpacity
                 key={alt.tag}
                 activeOpacity={0.8}
-                className={`px-5 py-3 rounded-2xl mr-3 border-2 ${activeAlt?.tag === alt.tag ? "bg-primary border-primary" : "bg-white border-neutral-100"}`}
+                className={`px-5 py-3 rounded-2xl mr-3 border-2 ${
+                  activeAlt?.tag === alt.tag
+                    ? "bg-primary border-primary"
+                    : "bg-white border-neutral-100"
+                }`}
                 onPress={() => onAltChange(alt)}
               >
                 <Text
-                  className={`text-xs ${activeAlt?.tag === alt.tag ? "text-white" : "text-muted-foreground"}`}
+                  className={`text-xs ${
+                    activeAlt?.tag === alt.tag
+                      ? "text-white"
+                      : "text-muted-foreground"
+                  }`}
                   style={styles.semibold}
                 >
                   {alt.label}
                 </Text>
                 <Text
-                  className={`text-sm ${activeAlt?.tag === alt.tag ? "text-white" : "text-foreground"}`}
+                  className={`text-sm ${
+                    activeAlt?.tag === alt.tag
+                      ? "text-white"
+                      : "text-foreground"
+                  }`}
                   style={styles.bold}
                 >
                   ₱{Number(alt.totalToll).toFixed(2)}
@@ -218,7 +363,7 @@ export default function TollResult({
         </>
       )}
 
-      {/* Toll Breakdown */}
+      {/* ── Toll Breakdown ────────────────────────────────── */}
       <View className="flex-row items-center justify-between mt-8 mb-2 ml-1">
         <Text className="text-muted-foreground text-md" style={styles.semibold}>
           Toll Breakdown
@@ -231,10 +376,16 @@ export default function TollResult({
             <View className="flex-row items-center py-5 gap-4">
               <HugeiconsIcon icon={TrafficLightIcon} color="#332300" />
               <View className="flex-1">
-                <Text className="text-foreground text-sm" style={styles.semibold}>
+                <Text
+                  className="text-foreground text-sm"
+                  style={styles.semibold}
+                >
                   {seg.expresswayName}
                 </Text>
-                <Text className="text-muted-foreground text-[11px] mt-0.5" style={styles.body}>
+                <Text
+                  className="text-muted-foreground text-[11px] mt-0.5"
+                  style={styles.body}
+                >
                   {seg.entryPlaza} → {seg.exitPlaza}
                 </Text>
               </View>
@@ -242,7 +393,10 @@ export default function TollResult({
                 <Text className="text-foreground text-base" style={styles.bold}>
                   ₱{Number(seg.toll).toFixed(2)}
                 </Text>
-                <Text className="text-muted-foreground/60 text-[9px] mt-0.5 uppercase tracking-tighter" style={styles.body}>
+                <Text
+                  className="text-muted-foreground/60 text-[9px] mt-0.5 uppercase tracking-tighter"
+                  style={styles.body}
+                >
                   {seg.rfidSystem}
                 </Text>
               </View>
@@ -257,7 +411,9 @@ export default function TollResult({
           className="flex-row items-center justify-center gap-2 py-4"
           onPress={() => {
             const origin = getPlazaCoords(displaySegments[0].entryPlaza);
-            const dest = getPlazaCoords(displaySegments[displaySegments.length - 1].exitPlaza);
+            const dest = getPlazaCoords(
+              displaySegments[displaySegments.length - 1].exitPlaza,
+            );
             if (!origin || !dest) return;
             const waypoints = displaySegments
               .slice(1, -1)
@@ -265,12 +421,19 @@ export default function TollResult({
               .filter(Boolean)
               .map((c) => `${c!.lat},${c!.lng}`)
               .join("|");
-            const url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${dest.lat},${dest.lng}${waypoints ? `&waypoints=${waypoints}` : ``}&travelmode=driving`;
+            const url =
+              `https://www.google.com/maps/dir/?api=1` +
+              `&origin=${origin.lat},${origin.lng}` +
+              `&destination=${dest.lat},${dest.lng}` +
+              `${waypoints ? `&waypoints=${waypoints}` : ""}` +
+              `&travelmode=driving`;
             Linking.openURL(url);
           }}
         >
           <HugeiconsIcon icon={MapsSquare01Icon} size={16} color="#ffc400" />
-          <Text className="text-accent-foreground text-sm" style={styles.bold}>Open in Google Maps</Text>
+          <Text className="text-accent-foreground text-sm" style={styles.bold}>
+            Open in Google Maps
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -283,7 +446,7 @@ export default function TollResult({
         effectiveKmL={tripStats?.effectiveKmL}
       />
 
-      {/* RFID Wallets */}
+      {/* ── RFID Wallets ──────────────────────────────────── */}
       {result.rfidBreakdown.length > 0 && (
         <>
           <View className="flex-row items-center justify-between mt-8 mb-2 ml-1">
@@ -319,99 +482,39 @@ export default function TollResult({
         </>
       )}
 
-      {/* Reset + Save */}
-      <View className="flex-row items-center justify-center gap-4 mt-6 mb-10">
-        <TouchableOpacity
-          className="flex-row items-center gap-2"
-          onPress={onReset}
-        >
-          <HugeiconsIcon icon={RefreshIcon} size={16} color="#737373" />
-          <Text className="text-muted-foreground text-sm" style={styles.body}>
-            Reset
-          </Text>
-        </TouchableOpacity>
-        <View className="w-px h-4 bg-border" />
-        <TouchableOpacity
-          className="flex-row items-center gap-2"
-          onPress={() => setShowSaveModal(true)}
-        >
-          <HugeiconsIcon icon={BookmarkAdd01Icon} size={16} color="#ffc400" />
-          <Text className="text-accent-foreground text-sm" style={styles.bold}>
-            Save Route
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* ── Inline Save Route (replaces modal) ────────────── */}
+      {!isAnonymous && (
+        <SaveRouteInline
+          origin={result.origin}
+          destination={result.destination}
+          onSave={handleSaveRoute}
+        />
+      )}
 
+      {/* ── Reset ─────────────────────────────────────────── */}
+      <TouchableOpacity
+        className="flex-row items-center justify-center gap-2 mt-4 mb-10 py-3"
+        onPress={onReset}
+      >
+        <HugeiconsIcon icon={RefreshIcon} size={15} color="#A3A3A3" />
+        <Text className="text-muted-foreground text-sm" style={styles.body}>
+          Start a new calculation
+        </Text>
+      </TouchableOpacity>
+
+      {/* ── Info modals ───────────────────────────────────── */}
       <InfoModal
         visible={showBreakdownInfo}
         onClose={() => setShowBreakdownInfo(false)}
         title="What is Toll Breakdown?"
         description="This shows each expressway segment of your route and the corresponding toll fee. If your trip passes through multiple expressways, each one is listed separately with its entry and exit plaza."
       />
-
       <InfoModal
         visible={showRfidInfo}
         onClose={() => setShowRfidInfo(false)}
         title="What is RFID Breakdown?"
-        description={`Different expressways use different RFID systems. This breakdown shows how much you need loaded on each RFID wallet to complete your trip.
-
-For example, if your route passes through NLEX (EasyTrip) and SLEX (Autosweep), you'll see the required balance for each tag separately.
-
-Make sure each wallet has enough balance before your trip.`}
+        description={`Different expressways use different RFID systems. This breakdown shows how much you need loaded on each RFID wallet to complete your trip.\n\nFor example, if your route passes through NLEX (EasyTrip) and SLEX (Autosweep), you'll see the required balance for each tag separately.\n\nMake sure each wallet has enough balance before your trip.`}
       />
-
-      {/* Save Modal */}
-      <Modal
-        visible={showSaveModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowSaveModal(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/50 justify-end"
-          onPress={() => setShowSaveModal(false)}
-        >
-          <Pressable
-            className="bg-white rounded-t-[32px] p-6 pb-10"
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View className="w-12 h-1 bg-neutral-200 rounded-full self-center mb-6" />
-            <Text className="text-xl mb-1" style={styles.bold}>
-              Save Route
-            </Text>
-            <Text
-              className="text-muted-foreground text-sm mb-5"
-              style={styles.body}
-            >
-              {result.origin} → {result.destination}
-            </Text>
-            <Text
-              className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-1.5"
-              style={styles.semibold}
-            >
-              Label
-            </Text>
-            <TextInput
-              className="bg-neutral-100 rounded-2xl px-4 py-3.5 text-foreground mb-5"
-              style={styles.body}
-              placeholder="e.g. Daily Commute"
-              placeholderTextColor="#A3A3A3"
-              value={label}
-              onChangeText={setLabel}
-              autoFocus
-            />
-            <Pressable
-              className={`rounded-2xl py-4 items-center ${!label.trim() || saving ? "bg-neutral-300" : "bg-primary"}`}
-              onPress={handleSave}
-              disabled={!label.trim() || saving}
-            >
-              <Text className="text-white text-base" style={styles.bold}>
-                Save
-              </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </>
   );
 }

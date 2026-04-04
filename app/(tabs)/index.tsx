@@ -19,7 +19,9 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,6 +29,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ExpresswayKey = keyof Omit<typeof tollPlazas, "summary">;
@@ -53,21 +56,30 @@ export default function Calculator() {
   const [result, setResult] = useState<TollCalculatorResponse | null>(null);
   const [activeAlt, setActiveAlt] = useState<AlternativeRoute | null>(null);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const resultYRef = useRef<number>(0);
+  const insets = useSafeAreaInsets();
+  const SHEET_HEIGHT = Dimensions.get("window").height * 0.92;
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
 
   useEffect(() => {
     if (result) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
+      Animated.spring(slideAnim, {
+        toValue: 0,
         useNativeDriver: true,
+        damping: 20,
+        stiffness: 140,
       }).start();
     } else {
-      fadeAnim.setValue(0);
+      slideAnim.setValue(SHEET_HEIGHT);
     }
   }, [result]);
+
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: SHEET_HEIGHT,
+      duration: 280,
+      useNativeDriver: true,
+    }).start(() => reset());
+  };
 
   useEffect(() => {
     fetchRoutes();
@@ -110,9 +122,7 @@ export default function Calculator() {
         vehicleClass,
         result: data,
       });
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ y: resultYRef.current, animated: true });
-      }, 350);
+      // ← auto-scroll removed
     } catch (e: any) {
       const isNotice = e.message?.toLowerCase().includes("no route");
       setErrorType(isNotice ? "notice" : "error");
@@ -135,7 +145,6 @@ export default function Calculator() {
     <SafeAreaView className="flex-1 bg-[#f7f7f7]" edges={[]}>
       <FloatingHeader title="MagkanoToll" />
       <ScrollView
-        ref={scrollRef}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -150,9 +159,7 @@ export default function Calculator() {
             style={styles.greetingBg}
             resizeMode="cover"
           />
-
           <View style={styles.overlay} />
-
           <View className="p-5">
             <Text className="text-white text-xs mb-0.5" style={styles.body}>
               {new Date().toLocaleDateString("en-PH", {
@@ -161,13 +168,11 @@ export default function Calculator() {
                 day: "numeric",
               })}
             </Text>
-
             <Text className="text-white text-xl mb-3" style={styles.bold}>
               {isAnonymous
                 ? "Hello, Guest 👋"
                 : `Hello, ${user?.full_name?.split(" ")[0]} 👋`}
             </Text>
-
             <View className="flex-row gap-3">
               <View className="flex-1 bg-white/10 rounded-xl p-3">
                 <Text className="text-white/60 text-xs" style={styles.body}>
@@ -177,7 +182,6 @@ export default function Calculator() {
                   {history.length}
                 </Text>
               </View>
-
               <View className="flex-1 bg-white/10 rounded-xl p-3">
                 <Text className="text-white/60 text-xs" style={styles.body}>
                   Saved Routes
@@ -189,6 +193,8 @@ export default function Calculator() {
             </View>
           </View>
         </LinearGradient>
+
+        {/* Quick Access */}
         {!isAnonymous && routes.length > 0 && (
           <>
             <Text
@@ -260,97 +266,118 @@ export default function Calculator() {
           Calculate Toll
         </Text>
 
+        {/* Form card */}
         <LinearGradient
           colors={["#ffcf2e", "#ffc400", "#ffae00"]}
-          className=" rounded-3xl p-5 mb-5 overflow-hidden"
+          className="rounded-3xl p-5 mb-5 overflow-hidden"
         >
-          <View>
-            <Text className="text-white text-sm  mb-2 ml-1" style={styles.body}>
-              Where are you going?
-            </Text>
-            <PlazaPicker
-              label="Origin"
-              value={origin}
-              sections={ORIGIN_SECTIONS}
-              onChange={handleOriginChange}
-            />
-            <View className="h-px bg-accent mx-2 my-1" />
-            <PlazaPicker
-              label="Destination"
-              value={destination}
-              sections={destinationSections}
-              onChange={setDestination}
-              disabled={!origin}
-            />
-            <VehicleClassSelector
-              value={vehicleClass}
-              onChange={setVehicleClass}
-            />
+          <Text className="text-white text-sm mb-2 ml-1" style={styles.body}>
+            Where are you going?
+          </Text>
+          <PlazaPicker
+            label="Origin"
+            value={origin}
+            sections={ORIGIN_SECTIONS}
+            onChange={handleOriginChange}
+          />
+          <View className="h-px bg-accent mx-2 my-1" />
+          <PlazaPicker
+            label="Destination"
+            value={destination}
+            sections={destinationSections}
+            onChange={setDestination}
+            disabled={!origin}
+          />
+          <VehicleClassSelector
+            value={vehicleClass}
+            onChange={setVehicleClass}
+          />
 
-            {error ? (
-              <Text
-                className={`px-4 py-3 rounded-2xl mt-4 text-xs ${errorType === "notice" ? "text-accent-foreground bg-accent/20" : "text-destructive bg-destructive/10"}`}
-                style={styles.body}
-              >
-                {error}
-              </Text>
-            ) : null}
-
-            <TouchableOpacity
-              className={`rounded-2xl py-4 items-center mt-4  ${loading ? "bg-neutral-300" : "bg-primary "}`}
-              onPress={calculate}
-              disabled={loading}
+          {error ? (
+            <Text
+              className={`px-4 py-3 rounded-2xl mt-4 text-xs ${
+                errorType === "notice"
+                  ? "text-accent-foreground bg-accent/20"
+                  : "text-destructive bg-destructive/10"
+              }`}
+              style={styles.body}
             >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text className="text-white text-base" style={styles.bold}>
-                  Calculate Toll
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+              {error}
+            </Text>
+          ) : null}
+
+          <TouchableOpacity
+            className={`rounded-2xl py-4 items-center mt-4 ${
+              loading ? "bg-neutral-300" : "bg-primary"
+            }`}
+            onPress={calculate}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white text-base" style={styles.bold}>
+                Calculate Toll
+              </Text>
+            )}
+          </TouchableOpacity>
         </LinearGradient>
 
-        {result && (
-          <View onLayout={(e) => { resultYRef.current = e.nativeEvent.layout.y; }}>
-            <Animated.View style={{ opacity: fadeAnim }}>
-              <TollResult
-              result={result}
-              activeAlt={activeAlt}
-              onAltChange={setActiveAlt}
-              onReset={reset}
-              vehicleClass={vehicleClass}
-            />
-            </Animated.View>
-          </View>
-        )}
       </ScrollView>
+
+      {/* ── Result bottom sheet modal ── */}
+      <Modal
+        visible={!!result}
+        transparent
+        animationType="none"
+        onRequestClose={closeModal}
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          {/* Tap backdrop to close */}
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={closeModal} />
+
+          <Animated.View
+            style={[
+              styles.sheet,
+              { height: SHEET_HEIGHT, paddingBottom: insets.bottom + 16 },
+              { transform: [{ translateY: slideAnim }] },
+            ]}
+          >
+            {/* Handle */}
+            <View style={styles.handle} />
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sheetContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {result && (
+                <TollResult
+                  result={result}
+                  activeAlt={activeAlt}
+                  onAltChange={setActiveAlt}
+                  onReset={closeModal}
+                  vehicleClass={vehicleClass}
+                />
+              )}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   bold: { fontFamily: "LufgaBold" },
   semibold: { fontFamily: "LufgaSemiBold" },
   body: { fontFamily: "LufgaRegular" },
   content: { padding: 20, paddingBottom: 110 },
-
   greetingCard: {
     borderRadius: 24,
     marginBottom: 20,
     overflow: "hidden",
-    position: "relative",
-  },
-
-  bgPattern: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.05,
-    width: "100%",
-    height: "100%",
   },
   greetingBg: {
     ...StyleSheet.absoluteFillObject,
@@ -358,29 +385,33 @@ const styles = StyleSheet.create({
     height: "100%",
     opacity: 0.4,
   },
-
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.20)",
   },
-
-  background: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 300,
+  // Modal sheet
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.45)",
   },
-
-  button: {
-    padding: 15,
-    alignItems: "center",
-    borderRadius: 5,
+  sheet: {
+    backgroundColor: "#f7f7f7",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
   },
-
-  text: {
-    backgroundColor: "transparent",
-    fontSize: 15,
-    color: "#fff",
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 99,
+    backgroundColor: "#D4D4D4",
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  sheetContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
 });

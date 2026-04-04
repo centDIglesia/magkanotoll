@@ -3,6 +3,7 @@ import { useHistoryStore } from "@/stores/useHistoryStore";
 import { useSavedRoutesStore, SavedRoute } from "@/stores/useSavedRoutesStore";
 import AppModal, { useAppModal } from "@/components/AppModal";
 import MyVehiclesSection from "@/components/MyVehiclesSection";
+import Skeleton from "@/components/Skeleton";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   User03Icon,
@@ -87,7 +88,7 @@ function EditRouteModal({ route, onClose }: { route: SavedRoute; onClose: () => 
 }
 
 export default function Profile() {
-  const { user, signOut, updateProfile, uploadAvatar } = useAuthStore();
+  const { user, isAnonymous, signOut, updateProfile, uploadAvatar } = useAuthStore();
   const { history, loading: histLoading, clearHistory, fetchHistory } = useHistoryStore();
   const { routes, loading: routesLoading, fetchRoutes, deleteRoute } = useSavedRoutesStore();
   const router = useRouter();
@@ -221,6 +222,43 @@ export default function Profile() {
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
+
+  // Guest gate — show sign-in prompt instead of profile
+  if (isAnonymous) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#ebebeb]" edges={[]}>
+        <View className="flex-row items-center px-5 pt-14 pb-4 gap-3">
+          <Text className="text-foreground text-xl flex-1" style={styles.bold}>Profile</Text>
+        </View>
+        <View className="flex-1 items-center justify-center gap-4 px-8">
+          <View className="w-20 h-20 rounded-full bg-neutral-200 items-center justify-center mb-2">
+            <HugeiconsIcon icon={User03Icon} size={36} color="#A3A3A3" />
+          </View>
+          <Text className="text-foreground text-xl text-center" style={styles.bold}>
+            You're browsing as a guest
+          </Text>
+          <Text className="text-muted-foreground text-sm text-center leading-6" style={styles.body}>
+            Sign in to access your profile, history, saved routes, and vehicles.
+          </Text>
+          <TouchableOpacity
+            className="bg-primary rounded-2xl px-8 py-4 mt-2 w-full items-center"
+            onPress={() => router.replace("/(auth)/login")}
+          >
+            <Text className="text-white text-base" style={styles.bold}>Sign In</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.replace("/(auth)/signup")}
+          >
+            <Text className="text-muted-foreground text-sm" style={styles.body}>
+              Don't have an account?{" "}
+              <Text className="text-accent-foreground" style={styles.bold}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-[#ebebeb]" edges={[]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -301,8 +339,23 @@ export default function Profile() {
         {section === "history" && (
           <>
             {!user || histLoading ? (
-              <View className="items-center py-10">
-                <ActivityIndicator color="#ffc400" />
+              <View className="gap-2.5">
+                {[1,2,3].map((i) => (
+                  <View key={i} className="bg-white rounded-2xl p-4 border border-neutral-100">
+                    <View className="flex-row justify-between items-center mb-3">
+                      <View className="gap-2 flex-1">
+                        <Skeleton width="60%" height={14} />
+                        <Skeleton width="45%" height={14} />
+                      </View>
+                      <Skeleton width={64} height={28} radius={8} />
+                    </View>
+                    <Skeleton width="100%" height={1} radius={0} />
+                    <View className="flex-row gap-2 mt-3">
+                      <Skeleton width={60} height={20} radius={99} />
+                      <Skeleton width={80} height={20} radius={99} />
+                    </View>
+                  </View>
+                ))}
               </View>
             ) : history.length === 0 ? (
               <View className="items-center py-10 gap-3">
@@ -397,8 +450,24 @@ export default function Profile() {
         {section === "saved" && (
           <>
             {routesLoading ? (
-              <View className="items-center py-10">
-                <ActivityIndicator color="#ffc400" />
+              <View className="gap-2.5">
+                {[1,2,3].map((i) => (
+                  <View key={i} className="bg-white rounded-2xl p-4 border border-neutral-100">
+                    <View className="flex-row justify-between items-center mb-3">
+                      <Skeleton width="50%" height={16} />
+                      <Skeleton width={64} height={28} radius={8} />
+                    </View>
+                    <View className="gap-2 mb-3">
+                      <Skeleton width="70%" height={14} />
+                      <Skeleton width="55%" height={14} />
+                    </View>
+                    <Skeleton width="100%" height={1} radius={0} />
+                    <View className="flex-row justify-between mt-3">
+                      <Skeleton width={60} height={20} radius={99} />
+                      <Skeleton width={90} height={14} />
+                    </View>
+                  </View>
+                ))}
               </View>
             ) : routes.length === 0 ? (
               <View className="items-center py-10 gap-3 px-4">

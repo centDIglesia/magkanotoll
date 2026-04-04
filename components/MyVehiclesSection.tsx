@@ -3,7 +3,6 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Car01Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
 } from "react-native";
 import VehicleCard from "./vehicles/VehicleCard";
 import VehicleFormModal from "./vehicles/VehicleFormModal";
+import Skeleton from "@/components/Skeleton";
 
 export default function MyVehiclesSection() {
   const { vehicles, loading, fetchVehicles, deleteVehicle } = useVehicleStore();
@@ -37,8 +37,25 @@ export default function MyVehiclesSection() {
 
       {/* Body */}
       {loading ? (
-        <View className="items-center py-10">
-          <ActivityIndicator color="#ffc400" />
+        <View className="gap-2.5">
+          {[1, 2].map((i) => (
+            <View key={i} className="bg-white rounded-2xl p-4 border border-neutral-100">
+              <View className="flex-row items-center gap-3 mb-3">
+                <Skeleton width={40} height={40} radius={12} />
+                <View className="flex-1 gap-2">
+                  <Skeleton width="55%" height={14} />
+                  <Skeleton width="40%" height={12} />
+                </View>
+                <Skeleton width={32} height={32} radius={10} />
+              </View>
+              <Skeleton width="100%" height={1} radius={0} />
+              <View className="flex-row gap-2 mt-3">
+                <Skeleton width={60} height={20} radius={99} />
+                <Skeleton width={70} height={20} radius={99} />
+                <Skeleton width={50} height={20} radius={99} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : vehicles.length === 0 ? (
         <View className="items-center py-10 gap-3">
