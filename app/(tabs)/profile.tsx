@@ -23,12 +23,13 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -101,6 +102,15 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingRoute, setEditingRoute] = useState<SavedRoute | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const scrollRef = useRef<ScrollView>(null);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchRoutes(), fetchHistory()]);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     fetchRoutes();
@@ -243,11 +253,15 @@ export default function Profile() {
           <TouchableOpacity
             className="bg-primary rounded-2xl px-8 py-4 mt-2 w-full items-center"
             onPress={() => router.replace("/(auth)/login")}
+            accessibilityLabel="Sign in to your account"
+            accessibilityRole="button"
           >
             <Text className="text-white text-base" style={styles.bold}>Sign In</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.replace("/(auth)/signup")}
+            accessibilityLabel="Create a new account"
+            accessibilityRole="button"
           >
             <Text className="text-muted-foreground text-sm" style={styles.body}>
               Don't have an account?{" "}
@@ -261,7 +275,19 @@ export default function Profile() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#ebebeb]" edges={[]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        scrollToOverflowEnabled
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#ffc400"
+          />
+        }
+      >
 
         {/* ── Header ── */}
         <View className="flex-row items-center mb-4 gap-3">
@@ -269,6 +295,8 @@ export default function Profile() {
           <Pressable
             onPress={() => router.push("/settings" as any)}
             className="w-9 h-9 bg-white rounded-full items-center justify-center"
+            accessibilityLabel="Open settings"
+            accessibilityRole="button"
           >
             <HugeiconsIcon icon={Settings01Icon} size={18} color="#171717" />
           </Pressable>
@@ -374,20 +402,27 @@ export default function Profile() {
                     <Text className="text-accent-foreground text-sm" style={styles.bold}>₱{totalSpent.toFixed(2)} total</Text>
                   </View>
                   <Text className="text-muted-foreground text-xs mb-4" style={styles.body}>Last 6 months</Text>
-                  <BarChart
-                    data={barData}
-                    barWidth={32}
-                    spacing={12}
-                    roundedTop
-                    hideRules
-                    hideAxesAndRules
-                    noOfSections={3}
-                    maxValue={Math.max(...barData.map((d) => d.value), 100)}
-                    height={120}
-                    barBorderRadius={6}
-                    yAxisTextStyle={{ fontFamily: "LufgaRegular", fontSize: 10, color: "#A3A3A3" }}
-                    xAxisLabelTextStyle={{ fontFamily: "LufgaRegular", fontSize: 10, color: "#A3A3A3" }}
-                  />
+                  {totalSpent === 0 ? (
+                    <View className="items-center py-4 gap-1">
+                      <Text className="text-muted-foreground text-sm" style={styles.body}>No spending data yet</Text>
+                      <Text className="text-muted-foreground text-xs" style={styles.body}>Calculate a toll to see your monthly chart</Text>
+                    </View>
+                  ) : (
+                    <BarChart
+                      data={barData}
+                      barWidth={32}
+                      spacing={12}
+                      roundedTop
+                      hideRules
+                      hideAxesAndRules
+                      noOfSections={3}
+                      maxValue={Math.max(...barData.map((d) => d.value), 100) || 100}
+                      height={120}
+                      barBorderRadius={6}
+                      yAxisTextStyle={{ fontFamily: "LufgaRegular", fontSize: 10, color: "#A3A3A3" }}
+                      xAxisLabelTextStyle={{ fontFamily: "LufgaRegular", fontSize: 10, color: "#A3A3A3" }}
+                    />
+                  )}
                 </View>
 
                 {/* Actions row */}
@@ -499,7 +534,14 @@ export default function Profile() {
                           </Pressable>
                           <Pressable
                             className="w-8 h-8 rounded-xl bg-red-500 items-center justify-center"
-                            onPress={() => deleteRoute(item.id)}
+                            onPress={() => show({
+                              type: "confirm",
+                              title: "Delete Route",
+                              message: `Delete "${item.label}"? This cannot be undone.`,
+                              confirmLabel: "Delete",
+                              cancelLabel: "Cancel",
+                              onConfirm: () => deleteRoute(item.id),
+                            })}
                           >
                             <HugeiconsIcon icon={Delete02Icon} size={15} color="white" />
                           </Pressable>

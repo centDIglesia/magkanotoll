@@ -1,4 +1,5 @@
 import { SavedVehicle, useVehicleStore } from "@/stores/useVehicleStore";
+import AppModal, { useAppModal } from "@/components/AppModal";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Car01Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
@@ -14,10 +15,22 @@ import Skeleton from "@/components/Skeleton";
 
 export default function MyVehiclesSection() {
   const { vehicles, loading, fetchVehicles, deleteVehicle } = useVehicleStore();
+  const { show, modalProps } = useAppModal();
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<SavedVehicle | null>(null);
 
   useEffect(() => { fetchVehicles(); }, []);
+
+  const handleDelete = (vehicle: SavedVehicle) => {
+    show({
+      type: "confirm",
+      title: "Delete Vehicle",
+      message: `Delete "${vehicle.nickname}"? This cannot be undone.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      onConfirm: () => deleteVehicle(vehicle.id),
+    });
+  };
 
   return (
     <View>
@@ -81,7 +94,7 @@ export default function MyVehiclesSection() {
               key={v.id}
               vehicle={v}
               onEdit={() => setEditing(v)}
-              onDelete={() => deleteVehicle(v.id)}
+              onDelete={() => handleDelete(v)}
             />
           ))}
         </View>
@@ -89,6 +102,7 @@ export default function MyVehiclesSection() {
 
       {showAdd && <VehicleFormModal onClose={() => setShowAdd(false)} />}
       {editing && <VehicleFormModal initial={editing} onClose={() => setEditing(null)} />}
+      <AppModal {...modalProps} />
     </View>
   );
 }

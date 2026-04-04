@@ -7,6 +7,7 @@ import {
   Settings01Icon,
   Logout01Icon,
   ArrowRight01Icon,
+  DashboardSquare01Icon,
 } from "@hugeicons/core-free-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -174,6 +175,19 @@ export default function AvatarMenu() {
                       router.push("/settings" as any);
                     }}
                   />
+                  {user?.is_admin && (
+                    <>
+                      <View className="h-px bg-neutral-100 my-1 mx-2" />
+                      <MenuButton
+                        icon={DashboardSquare01Icon}
+                        label="Admin Dashboard"
+                        onPress={() => {
+                          setVisible(false);
+                          router.push("/admin" as any);
+                        }}
+                      />
+                    </>
+                  )}
                   <View className="h-px bg-neutral-100 my-1 mx-2" />
                   <MenuButton
                     icon={Logout01Icon}

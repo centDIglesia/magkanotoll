@@ -1,8 +1,6 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
-  Mail01Icon,
-  LockPasswordIcon,
   ViewIcon,
   ViewOffIcon,
   User03Icon,
@@ -43,7 +41,16 @@ const handleAuth = async () => {
         params: { email },
       });
     } else {
-      setError(e.message);
+      const errorMsg = e.message.toLowerCase();
+      if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        setError('No internet connection. Please check your network and try again.');
+      } else if (errorMsg.includes('invalid') || errorMsg.includes('credentials')) {
+        setError('Invalid email or password. Please try again.');
+      } else if (errorMsg.includes('too many')) {
+        setError('Too many login attempts. Please try again later.');
+      } else {
+        setError(e.message || 'Something went wrong. Please try again.');
+      }
     }
   }
   setLoading(false);

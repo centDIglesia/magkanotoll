@@ -1,6 +1,8 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import AppModal, { useAppModal } from "@/components/AppModal";
 import { HugeiconsIcon } from "@hugeicons/react-native";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ArrowLeft01Icon,
   LockPasswordIcon,
@@ -11,9 +13,10 @@ import {
   ArrowRight01Icon,
   InformationCircleIcon,
   ShieldKeyIcon,
+  Settings02Icon,
 } from "@hugeicons/core-free-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -28,16 +31,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Settings() {
-  const { resetPassword, deleteAccount, signOut } = useAuthStore();
+  const { resetPassword, deleteAccount, signOut, user } = useAuthStore();
   const router = useRouter();
   const { show, modalProps } = useAppModal();
 
-  // Change password
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -51,6 +51,21 @@ export default function Settings() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
 
+  // Load notification preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const push = await AsyncStorage.getItem('push_notifications');
+        const email = await AsyncStorage.getItem('email_notifications');
+        if (push !== null) setPushEnabled(JSON.parse(push));
+        if (email !== null) setEmailEnabled(JSON.parse(email));
+      } catch (error) {
+        console.error('Failed to load notification preferences:', error);
+      }
+    };
+    loadPreferences();
+  }, []);
+
   const handleChangePassword = async () => {
     setPasswordError("");
     if (newPassword.length < 6) return setPasswordError("Password must be at least 6 characters.");
@@ -59,12 +74,30 @@ export default function Settings() {
     try {
       await resetPassword(newPassword);
       setShowPasswordModal(false);
-      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+      setNewPassword(""); setConfirmPassword("");
       show({ type: "success", title: "Password Updated", message: "Your password has been updated successfully.", confirmLabel: "OK" });
     } catch (e: any) {
       setPasswordError(e.message);
     }
     setPasswordLoading(false);
+  };
+
+  const handleTogglePush = async (value: boolean) => {
+    setPushEnabled(value);
+    try {
+      await AsyncStorage.setItem('push_notifications', JSON.stringify(value));
+    } catch (error) {
+      console.error('Failed to save push notification preference:', error);
+    }
+  };
+
+  const handleToggleEmail = async (value: boolean) => {
+    setEmailEnabled(value);
+    try {
+      await AsyncStorage.setItem('email_notifications', JSON.stringify(value));
+    } catch (error) {
+      console.error('Failed to save email notification preference:', error);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -119,7 +152,7 @@ export default function Settings() {
             <Text className="text-foreground text-sm flex-1" style={styles.body}>Push Notifications</Text>
             <Switch
               value={pushEnabled}
-              onValueChange={setPushEnabled}
+              onValueChange={handleTogglePush}
               trackColor={{ false: "#e5e5e5", true: "#ffc400" }}
               thumbColor="#fff"
             />
@@ -132,7 +165,7 @@ export default function Settings() {
             <Text className="text-foreground text-sm flex-1" style={styles.body}>Email Notifications</Text>
             <Switch
               value={emailEnabled}
-              onValueChange={setEmailEnabled}
+              onValueChange={handleToggleEmail}
               trackColor={{ false: "#e5e5e5", true: "#ffc400" }}
               thumbColor="#fff"
             />
@@ -145,9 +178,23 @@ export default function Settings() {
           <SettingsRow
             icon={InformationCircleIcon}
             label="App Version"
-            value="1.0.0"
+            value={Constants.expoConfig?.version ?? "1.0.0"}
           />
         </View>
+
+        {/* Admin */}
+        {(user as any)?.is_admin && (
+          <>
+            <Text className="text-muted-foreground text-xs uppercase tracking-widest ml-1 mb-1 mt-2" style={styles.body}>Admin</Text>
+            <View className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+              <SettingsRow
+                icon={Settings02Icon}
+                label="Admin Dashboard"
+                onPress={() => router.push("/admin" as any)}
+              />
+            </View>
+          </>
+        )}
 
         {/* Danger Zone */}
         <Text className="text-destructive text-xs uppercase tracking-widest ml-1 mb-1 mt-2" style={styles.body}>Danger Zone</Text>

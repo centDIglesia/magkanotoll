@@ -7,6 +7,7 @@ import {
   CompassIcon,
   UserCircleIcon,
 } from "@hugeicons/core-free-icons";
+import { useScrollToTop } from "@react-navigation/native";
 
 export default function TabsLayout() {
   return (
@@ -40,8 +41,8 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "Home",
           tabBarIcon: ({ focused }) => (
-            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
-              <HugeiconsIcon icon={Home01Icon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={Home01Icon} size={24} color={focused ? "#fff" : "#A3A3A3"} />
             </View>
           ),
         }}
@@ -52,8 +53,8 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "RFID",
           tabBarIcon: ({ focused }) => (
-            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
-              <HugeiconsIcon icon={CreditCardIcon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={CreditCardIcon} size={24} color={focused ? "#fff" : "#A3A3A3"} />
             </View>
           ),
         }}
@@ -64,8 +65,8 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "Explore",
           tabBarIcon: ({ focused }) => (
-            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
-              <HugeiconsIcon icon={CompassIcon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={CompassIcon} size={24} color={focused ? "#fff" : "#A3A3A3"} />
             </View>
           ),
         }}
@@ -76,16 +77,15 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) => (
-            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent/10 mb-6" : "mb-4"}`}>
-              <HugeiconsIcon icon={UserCircleIcon} size={24} color={focused ? "#ffc400" : "#A3A3A3"} />
+            <View className={`items-center justify-center rounded-2xl p-4 py-5 ${focused ? "bg-accent mb-6" : "mb-4"}`}>
+              <HugeiconsIcon icon={UserCircleIcon} size={24} color={focused ? "#fff" : "#A3A3A3"} />
             </View>
           ),
         }}
       />
 
-      {/* Hidden — content moved into Profile tab */}
-      <Tabs.Screen name="history" options={{ href: null }} />
-      <Tabs.Screen name="saved" options={{ href: null }} />
+     
+    
     </Tabs>
   );
 }

@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Car01Icon, PlugSocketIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -227,12 +228,15 @@ export default function VehicleFormModal({ initial, onClose }: Props) {
 
             {/* ── Save ──────────────────────────────────────────── */}
             <Pressable
-              className={`rounded-2xl py-4 items-center mt-2 ${
+              className={`rounded-2xl py-4 items-center mt-2 flex-row justify-center gap-2 ${
                 !canSave || saving ? "bg-neutral-300" : "bg-primary"
               }`}
               onPress={handleSave}
               disabled={!canSave || saving}
             >
+              {saving && (
+                <ActivityIndicator size="small" color="#fff" />
+              )}
               <Text className="text-white text-base" style={styles.bold}>
                 {saving ? "Saving…" : initial ? "Save Changes" : "Add Vehicle"}
               </Text>

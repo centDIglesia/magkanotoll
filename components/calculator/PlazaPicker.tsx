@@ -121,6 +121,19 @@ export default function PlazaPicker({ label, value, sections, onChange, disabled
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 20 }}
               stickySectionHeadersEnabled={false}
+              ListEmptyComponent={
+                search.length > 0 ? (
+                  <View className="items-center py-10 gap-2">
+                    <HugeiconsIcon icon={Search01Icon} size={32} color="#A3A3A3" />
+                    <Text className="text-muted-foreground text-sm text-center" style={styles.body}>
+                      No plazas found for "{search}"
+                    </Text>
+                    <Text className="text-muted-foreground text-xs text-center" style={styles.body}>
+                      Try a different search term
+                    </Text>
+                  </View>
+                ) : null
+              }
               renderSectionHeader={({ section }) => (
                 <View className="bg-neutral-50 px-3 py-2 mt-2 rounded-xl">
                   <Text className="text-[10px] uppercase text-muted-foreground" style={styles.bold}>

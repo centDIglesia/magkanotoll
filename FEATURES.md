@@ -352,6 +352,14 @@ A unified page that consolidates the user's account info, history, saved routes,
 - **Bottom sheet modal** — toll results slide up from the bottom as a full-height (92% screen) modal sheet with a spring animation. A drag handle sits at the top. Tapping the backdrop or the reset button closes it with a slide-down animation.
 - **AppModal** — all confirmation dialogs, error messages, warnings, and success messages use a consistent custom modal component instead of native `Alert`.
 - **Inline save** — saving a route uses an inline text input with an animated checkmark confirmation, no separate modal.
+- **Haptic feedback** — tactile vibrations on key interactions (success, error, button presses) using platform-aware haptics.
+- **Pull-to-refresh** — available on Profile (history/routes), RFID cards, and Admin dashboard.
+- **Empty states** — friendly messages when search returns no results or lists are empty.
+- **Loading indicators** — ActivityIndicator shown during async operations (save, delete, etc.).
+- **Confirmation dialogs** — required before destructive actions (delete vehicle, clear history, delete account).
+- **Input validation** — real-time validation for email format, password strength, card numbers, same origin/destination.
+- **Error handling** — all API calls wrapped in try-catch with user-friendly error messages.
+- **Accessibility** — labels, roles, and hints added to interactive elements for screen reader support.
 - **Fonts** — Lufga font family (Thin through Black weights) used throughout.
 - **Colors** — primary `#171717` (dark), accent `#ffc400` (yellow), white, and neutral grays. Onboarding uses only these colors.
 - **Icons** — HugeIcons (`@hugeicons/react-native` + `@hugeicons/core-free-icons`) used throughout.
@@ -380,12 +388,21 @@ A unified page that consolidates the user's account info, history, saved routes,
 
 | Table | Purpose |
 |---|---|
-| `toll_history` | Stores all toll calculations per user (origin, destination, vehicle class, total toll, segments, RFID breakdown) |
+| `toll_history` | Stores all toll calculations per user (origin, destination, vehicle class, total toll, segments, RFID breakdown) with error handling |
 | `saved_routes` | Stores bookmarked routes (label, origin, destination, vehicle class, total toll) per user |
-| `saved_vehicles` | Stores vehicle details (nickname, year, make, model, engine cc, battery kWh, fuel type, vehicle class) per user |
-| `rfid_cards` | Stores RFID card numbers (system, card number, nickname) per user |
+| `saved_vehicles` | Stores vehicle details (nickname, year, make, model, engine cc, battery kWh, fuel type, vehicle class) per user with validation |
+| `rfid_cards` | Stores RFID card numbers (system, card number, nickname) per user with 16-digit validation |
+| `banned_users` | Tracks banned user accounts (admin feature) |
+| `app_content` | Stores Terms & Conditions and Privacy Policy sections (admin editable) |
 
 All tables use **Row Level Security (RLS)** — users can only read, insert, update, and delete their own rows. Anonymous/guest users are blocked from all tables.
+
+**Admin RPC Functions:**
+- `get_admin_users` — Returns all users with calculation counts and ban status
+- `get_popular_routes` — Returns most calculated routes across all users
+- `admin_delete_user` — Allows admins to delete user accounts
+- `save_app_content` — Allows admins to update Terms/Privacy content
+- `delete_user` — Allows users to delete their own account
 
 ---
 

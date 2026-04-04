@@ -219,15 +219,13 @@ export default function Onboarding() {
         >
           <Text style={styles.ctaText}>{isLast ? "Get Started" : "Next"}</Text>
           <View style={styles.ctaIconWrap}>
-            <HugeiconsIcon icon={ArrowRight01Icon} size={18} color={COLORS.accent} />
+            <HugeiconsIcon icon={ArrowRight01Icon} size={18} color="#fff" />
           </View>
         </Pressable>
 
-        {!isLast && (
-          <Pressable onPress={handleGetStarted} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip for now</Text>
-          </Pressable>
-        )}
+        <Pressable onPress={handleGetStarted} style={styles.skipBtn}>
+          <Text style={[styles.skipText, { opacity: isLast ? 0 : 1 }]}>Skip for now</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -353,13 +351,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    marginBottom: 4,
-    backgroundColor: "#ffffff",
-    borderWidth: 1.5,
-    borderColor: "#ffc400",
+    backgroundColor: "#332300",
   },
   ctaText: {
-    color: "#332300",
+    color: "#ffc400",
     fontSize: 16,
     fontFamily: "LufgaBold",
   },
@@ -367,7 +362,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 99,
-    backgroundColor: "#ffc40020",
+    backgroundColor: "#ffffff18",
     alignItems: "center",
     justifyContent: "center",
   },

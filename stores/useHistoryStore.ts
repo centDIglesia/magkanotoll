@@ -24,84 +24,99 @@ export const useHistoryStore = create<HistoryStore>((set) => ({
   loading: false,
 
   fetchHistory: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.is_anonymous) {
-      set({ history: [], loading: false });
-      return;
-    }
-    set({ loading: true });
-    const { data, error } = await supabase
-      .from("toll_history")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("calculated_at", { ascending: false });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.is_anonymous) {
+        set({ history: [], loading: false });
+        return;
+      }
+      set({ loading: true });
+      const { data, error } = await supabase
+        .from("toll_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("calculated_at", { ascending: false });
 
-    if (!error && data) {
-      set({
-        history: data.map((row) => ({
-          id: row.id,
-          origin: row.origin,
-          destination: row.destination,
-          vehicleClass: row.vehicle_class as VehicleClass,
-          calculatedAt: new Date(row.calculated_at),
-          result: {
+      if (!error && data) {
+        set({
+          history: data.map((row) => ({
+            id: row.id,
             origin: row.origin,
             destination: row.destination,
-            vehicleClass: row.vehicle_class,
-            totalToll: row.total_toll,
-            segments: row.segments,
-            rfidBreakdown: row.rfid_breakdown,
-            alternativeRoutes: row.alternative_routes ?? [],
-          },
-        })),
-      });
+            vehicleClass: row.vehicle_class as VehicleClass,
+            calculatedAt: new Date(row.calculated_at),
+            result: {
+              origin: row.origin,
+              destination: row.destination,
+              vehicleClass: row.vehicle_class,
+              totalToll: row.total_toll,
+              segments: row.segments,
+              rfidBreakdown: row.rfid_breakdown,
+              alternativeRoutes: row.alternative_routes ?? [],
+            },
+          })),
+        });
+      }
+      set({ loading: false });
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+      set({ history: [], loading: false });
     }
-    set({ loading: false });
   },
 
   addEntry: async (entry) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.is_anonymous) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.is_anonymous) return;
 
-    const { data, error } = await supabase
-      .from("toll_history")
-      .insert({
-        user_id: user.id,
-        origin: entry.origin,
-        destination: entry.destination,
-        vehicle_class: entry.vehicleClass,
-        total_toll: entry.result.totalToll,
-        segments: entry.result.segments,
-        rfid_breakdown: entry.result.rfidBreakdown,
-        alternative_routes: entry.result.alternativeRoutes,
-      })
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from("toll_history")
+        .insert({
+          user_id: user.id,
+          origin: entry.origin,
+          destination: entry.destination,
+          vehicle_class: entry.vehicleClass,
+          total_toll: entry.result.totalToll,
+          segments: entry.result.segments,
+          rfid_breakdown: entry.result.rfidBreakdown,
+          alternative_routes: entry.result.alternativeRoutes,
+        })
+        .select()
+        .single();
 
-    if (!error && data) {
-      set((state) => ({
-        history: [
-          {
-            id: data.id,
-            origin: data.origin,
-            destination: data.destination,
-            vehicleClass: data.vehicle_class,
-            calculatedAt: new Date(data.calculated_at),
-            result: entry.result,
-          },
-          ...state.history,
-        ],
-      }));
+      if (!error && data) {
+        set((state) => ({
+          history: [
+            {
+              id: data.id,
+              origin: data.origin,
+              destination: data.destination,
+              vehicleClass: data.vehicle_class,
+              calculatedAt: new Date(data.calculated_at),
+              result: entry.result,
+            },
+            ...state.history,
+          ],
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to add history entry:', error);
     }
   },
 
   clearHistory: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.is_anonymous) return;
-    const { error } = await supabase
-      .from("toll_history")
-      .delete()
-      .eq("user_id", user.id);
-    if (!error) set({ history: [] });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.is_anonymous) return;
+      const { error } = await supabase
+        .from("toll_history")
+        .delete()
+        .eq("user_id", user.id);
+      if (!error) set({ history: [] });
+      else throw error;
+    } catch (error) {
+      console.error('Failed to clear history:', error);
+      throw error;
+    }
   },
 }));

@@ -5,6 +5,7 @@ import VehicleClassSelector from "@/components/calculator/VehicleClassSelector";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useHistoryStore } from "@/stores/useHistoryStore";
 import { useSavedRoutesStore } from "@/stores/useSavedRoutesStore";
+import { useVehicleStore } from "@/stores/useVehicleStore";
 import {
   AlternativeRoute,
   TollCalculatorResponse,
@@ -12,6 +13,7 @@ import {
   fetchExpresswayToll,
 } from "@/utils/tollApi";
 import { tollPlazas, Expressway } from "@/utils/tollData";
+import { hapticLight, hapticSuccess, hapticError } from "@/utils/haptics";
 import { ArrowRight01Icon, BookmarkIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,8 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 
 type ExpresswayKey = keyof Omit<typeof tollPlazas, "summary">;
 
@@ -46,10 +47,15 @@ const ORIGIN_SECTIONS: PlazaSection[] = EXPRESSWAY_KEYS.map((key) => {
 export default function Calculator() {
   const { addEntry, history } = useHistoryStore();
   const { user, isAnonymous } = useAuthStore();
-  const { routes, fetchRoutes } = useSavedRoutesStore();
+  const { routes } = useSavedRoutesStore();
+  const { getDefaultVehicle } = useVehicleStore();
+  const defaultVehicle = getDefaultVehicle();
+
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [vehicleClass, setVehicleClass] = useState<VehicleClass>(1);
+  const [vehicleClass, setVehicleClass] = useState<VehicleClass>(
+    (defaultVehicle?.vehicle_class as VehicleClass) ?? 1
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState<"error" | "notice">("error");
@@ -81,10 +87,6 @@ export default function Calculator() {
     }).start(() => reset());
   };
 
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
-
   const destinationSections: PlazaSection[] = ORIGIN_SECTIONS.map(
     (section) => ({
       ...section,
@@ -103,12 +105,20 @@ export default function Calculator() {
   const calculate = async () => {
     if (!origin.trim() || !destination.trim()) {
       setError("Please select both origin and destination.");
+      hapticError();
       return;
     }
+    if (origin === destination) {
+      setError("Origin and destination cannot be the same plaza.");
+      hapticError();
+      return;
+    }
+    if (loading) return; // Prevent multiple simultaneous calls
     setError("");
     setResult(null);
     setActiveAlt(null);
     setLoading(true);
+    hapticLight();
     try {
       const data = await fetchExpresswayToll({
         origin: origin.trim(),
@@ -122,11 +132,23 @@ export default function Calculator() {
         vehicleClass,
         result: data,
       });
+      hapticSuccess();
 
     } catch (e: any) {
-      const isNotice = e.message?.toLowerCase().includes("no route");
+      hapticError();
+      const msg: string = e.message ?? "";
+      const isNotice = msg.toLowerCase().includes("no route");
+      const isNetwork = msg.toLowerCase().includes("network") || msg.toLowerCase().includes("fetch") || msg.toLowerCase().includes("failed to fetch");
       setErrorType(isNotice ? "notice" : "error");
-      setError(e.message);
+      setError(
+        isNetwork
+          ? "Could not reach the toll server. Please check your connection and try again."
+          : isNotice
+          ? msg
+          : msg.startsWith("API error") || msg.startsWith("HTTP")
+          ? "The toll service is temporarily unavailable. Please try again later."
+          : msg
+      );
     }
     setLoading(false);
   };

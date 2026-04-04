@@ -9,12 +9,14 @@ interface User {
   full_name: string;
   profile_image_url?: string;
   onboarding_completed: boolean;
+  is_admin?: boolean;
 }
 
 interface AuthStore {
   user: User | null;
   isLoggedIn: boolean;
   isAnonymous: boolean;
+  loadSession: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signInAnonymously: () => Promise<void>;
@@ -32,17 +34,31 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isLoggedIn: false,
   isAnonymous: false,
 
-  signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  loadSession: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    const u = session.user;
+    const isAnon = u.app_metadata?.provider === "anonymous" || !u.email;
+    set({
+      user: {
+        id: u.id,
+        email: u.email ?? "",
+        full_name: u.user_metadata?.full_name ?? "",
+        profile_image_url: u.user_metadata?.profile_image_url,
+        onboarding_completed: u.user_metadata?.onboarding_completed ?? false,
+        is_admin: u.user_metadata?.is_admin ?? false,
+      },
+      isAnonymous: isAnon,
+      isLoggedIn: true,
     });
+  },
 
-  
+  signIn: async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
       if (error.message.toLowerCase().includes("email not confirmed")) {
-        const err = new Error("EMAIL_NOT_CONFIRMED");
-        throw err;
+        throw new Error("EMAIL_NOT_CONFIRMED");
       }
       throw error;
     }
@@ -51,14 +67,25 @@ export const useAuthStore = create<AuthStore>((set) => ({
       throw new Error("EMAIL_NOT_CONFIRMED");
     }
 
+    // Check if user is banned
+    const { data: banned } = await supabase
+      .from("banned_users")
+      .select("user_id")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+    if (banned) {
+      await supabase.auth.signOut();
+      throw new Error("Your account has been banned. Please contact support.");
+    }
+
     set({
       user: {
         id: data.user.id,
         email: data.user.email ?? "",
         full_name: data.user.user_metadata?.full_name ?? "",
         profile_image_url: data.user.user_metadata?.profile_image_url,
-        onboarding_completed:
-          data.user.user_metadata?.onboarding_completed ?? false,
+        onboarding_completed: data.user.user_metadata?.onboarding_completed ?? false,
+        is_admin: data.user.user_metadata?.is_admin ?? false,
       },
       isAnonymous: false,
       isLoggedIn: true,

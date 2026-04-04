@@ -11,9 +11,6 @@ export default function RootLayout() {
   const fetchRoutes = useSavedRoutesStore((s) => s.fetchRoutes);
 
   const [fontsLoaded] = useFonts({
-    LufgaThin: require("../assets/fonts/LufgaThin.ttf"),
-    LufgaExtraLight: require("../assets/fonts/LufgaExtraLight.ttf"),
-    LufgaLight: require("../assets/fonts/LufgaLight.ttf"),
     LufgaRegular: require("../assets/fonts/LufgaRegular.ttf"),
     LufgaMedium: require("../assets/fonts/LufgaMedium.ttf"),
     LufgaSemiBold: require("../assets/fonts/LufgaSemiBold.ttf"),
@@ -47,6 +44,7 @@ export default function RootLayout() {
       <Stack.Screen name="terms" options={{ headerShown: false }} />
       <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
       <Stack.Screen name="tollbot" options={{ headerShown: false }} />
+      <Stack.Screen name="admin" options={{ headerShown: false }} />
     </Stack>
   );
 }

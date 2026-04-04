@@ -1,40 +1,61 @@
 import { supabase } from "@/utils/supabase";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Index() {
   const router = useRouter();
-  const { signInAnonymously } = useAuthStore();
+  const { signInAnonymously, loadSession } = useAuthStore();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const bootstrap = async () => {
-   //   DEV: uncomment to reset onboarding
-     // await AsyncStorage.removeItem("onboarding_done");
-
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Already has a session (real or anonymous) — go straight to tabs
       if (session) {
+        await loadSession();
+
+        // Check ban on resume for non-anonymous users
+        if (!session.user.is_anonymous && session.user.email) {
+          const { data: banned } = await supabase
+            .from("banned_users")
+            .select("user_id")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (banned) {
+            await supabase.auth.signOut();
+            router.replace("/(auth)/login" as any);
+            return;
+          }
+        }
+
         router.replace("/(tabs)" as any);
         return;
       }
 
-      // Show onboarding first time, then auto sign in as guest
       const seen = await AsyncStorage.getItem("onboarding_done");
       if (!seen) {
         router.replace("/(onboarding)" as any);
         return;
       }
 
-      // No session + onboarding done — sign in as guest automatically
       await signInAnonymously();
       router.replace("/(tabs)" as any);
     };
-    bootstrap();
+
+    bootstrap().finally(() => setReady(true));
   }, []);
+
+  if (!ready) {
+    return (
+      <View className="flex-1 bg-[#ffc400] items-center justify-center">
+        <ActivityIndicator color="#332300" size="large" />
+      </View>
+    );
+  }
 
   return <View className="flex-1" />;
 }

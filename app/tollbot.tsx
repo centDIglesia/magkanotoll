@@ -41,6 +41,8 @@ export default function TollBot() {
   const [loading, setLoading] = useState(false);
   const listRef = useRef<FlatList>(null);
 
+  const [lastFailedMsg, setLastFailedMsg] = useState<string | null>(null);
+
   useEffect(() => {
     resetChat();
   }, []);
@@ -49,18 +51,25 @@ export default function TollBot() {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
     setInput("");
+    setLastFailedMsg(null);
 
     const userMsg: ChatMessage = { role: "user", text: msg };
     const updated = [...messages, userMsg];
-    setMessages(updated);
+    // Limit to last 50 messages to prevent memory issues
+    const trimmed = updated.length > 50 ? updated.slice(-50) : updated;
+    setMessages(trimmed);
     setLoading(true);
 
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      const reply = await sendMessage(msg, updated);
-      setMessages((prev) => [...prev, { role: "model", text: reply }]);
+      const reply = await sendMessage(msg, trimmed);
+      setMessages((prev) => {
+        const newMessages = [...prev, { role: "model", text: reply }];
+        return newMessages.length > 50 ? newMessages.slice(-50) : newMessages;
+      });
     } catch (e: any) {
+      setLastFailedMsg(msg);
       setMessages((prev) => [
         ...prev,
         { role: "model", text: `Error: ${e.message}` },
@@ -70,13 +79,24 @@ export default function TollBot() {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
+  const handleRetry = () => {
+    if (!lastFailedMsg) return;
+    // Remove last error message pair (user + error)
+    setMessages((prev) => prev.slice(0, -2));
+    handleSend(lastFailedMsg);
+  };
+
   const handleClear = () => {
     resetChat();
     setMessages([WELCOME]);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#ebebeb]">
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <SafeAreaView className="flex-1 bg-[#ebebeb]" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center px-5 pt-2 pb-4 gap-3">
         <Pressable
@@ -97,11 +117,7 @@ export default function TollBot() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
+      <View className="flex-1">
         {/* Messages */}
         <FlatList
           ref={listRef}
@@ -142,13 +158,21 @@ export default function TollBot() {
                 >
                   {item.text}
                 </Text>
+                {item.role === "model" && item.text.startsWith("Error:") && lastFailedMsg && (
+                  <Pressable
+                    onPress={handleRetry}
+                    className="mt-2 bg-accent/20 rounded-xl px-3 py-1.5 self-start"
+                  >
+                    <Text className="text-accent-foreground text-xs" style={styles.bold}>Retry</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           )}
         />
 
-        {/* Suggestions — show only at start */}
-        {messages.length === 1 && (
+        {/* Suggestions — show only when chat is at welcome state */}
+        {messages.length === 1 && !loading && (
           <View className="px-4 pb-2">
             <Text className="text-muted-foreground text-xs mb-2 ml-1" style={styles.body}>Mga maaaring itanong:</Text>
             <View className="flex-row flex-wrap gap-2">
@@ -186,8 +210,9 @@ export default function TollBot() {
             <HugeiconsIcon icon={SentIcon} size={18} color={!input.trim() || loading ? "#A3A3A3" : "#fff"} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

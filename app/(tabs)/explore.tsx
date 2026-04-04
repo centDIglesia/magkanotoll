@@ -18,7 +18,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type EwKey = keyof typeof tollPlazas;
-const EW_KEYS = Object.keys(tollPlazas) as EwKey[];
+const EW_KEYS = (Object.keys(tollPlazas) as EwKey[]).filter(
+  (k) => k !== "summary" && !!(tollPlazas[k] as any)?.fullName
+);
 
 // Static toll rates per expressway (Class 1 / Class 2 / Class 3 base rates)
 const TOLL_RATES: Record<string, { class1: string; class2: string; class3: string; note: string }> = {

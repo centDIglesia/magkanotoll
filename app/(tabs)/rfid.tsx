@@ -21,6 +21,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -51,8 +52,11 @@ const RFID_SYSTEMS = [
   },
 ];
 
+import * as Haptics from "expo-haptics";
+
 function notify(msg: string) {
   if (Platform.OS === "android") ToastAndroid.show(msg, ToastAndroid.SHORT);
+  else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 }
 
 export default function RfidBalance() {
@@ -67,8 +71,15 @@ export default function RfidBalance() {
   const [nickname, setNickname] = useState("");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { if (!isAnonymous) fetchCards(); }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchCards();
+    setRefreshing(false);
+  };
 
   const openAddModal = (system: "EasyTrip" | "Autosweep") => {
     setAddSystem(system);
@@ -132,7 +143,17 @@ export default function RfidBalance() {
   return (
     <SafeAreaView className="flex-1 bg-[#ebebeb]" edges={["bottom"]}>
       <FloatingHeader title="RFID Balance" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#ffc400"
+          />
+        }
+      >
 
         {/* Info Banner */}
         <View className="bg-accent/15 rounded-2xl p-4 mb-5 flex-row items-start gap-3">
@@ -282,8 +303,11 @@ export default function RfidBalance() {
                 placeholderTextColor="#A3A3A3"
                 keyboardType="numeric"
                 maxLength={19}
-                value={cardNumber.replace(/(.{4})/g, "$1 ").trim()}
-                onChangeText={(v) => setCardNumber(v.replace(/\s/g, ""))}
+                value={cardNumber.replace(/(\d{4})(?=\d)/g, "$1 ")}
+                onChangeText={(v) => {
+                  const cleaned = v.replace(/[^0-9]/g, "");
+                  setCardNumber(cleaned);
+                }}
               />
               <Text className="text-muted-foreground text-xs mb-4 ml-1" style={styles.body}>
                 Found on the back of your {addSystem} RFID card
