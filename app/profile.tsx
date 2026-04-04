@@ -84,7 +84,6 @@ export default function Profile() {
 
     const asset = result.assets[0];
 
-    // ✅ FIXED: ensure base64 is always a valid string before uploading
     let base64 = asset.base64;
     if (!base64) {
       try {

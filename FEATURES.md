@@ -8,6 +8,19 @@
 
 ---
 
+## App Navigation
+
+The app has 4 tabs in the bottom navigation bar:
+
+| Tab | Screen |
+|---|---|
+| Home | Toll Fee Calculator |
+| RFID | RFID Card Manager |
+| Explore | Expressway Info, Rates, Traffic |
+| Profile | Account, History, Saved Routes, Vehicles |
+
+---
+
 ## Features
 
 ---
@@ -18,7 +31,7 @@
 The core feature of the app. Users select an entry (origin) toll plaza and an exit (destination) toll plaza, choose their vehicle class, and the app returns the estimated toll fee for that trip.
 
 **How it works:**
-- The user picks an origin and destination plaza from a list organized by expressway (e.g., NLEX, SLEX, TPLEX, etc.).
+- The user picks an origin and destination plaza from a list organized by expressway 
 - The user selects their **vehicle class**:
   - **Class 1** — Cars, SUVs, vans, motorcycles
   - **Class 2** — Buses, jeepneys, light trucks
@@ -26,7 +39,7 @@ The core feature of the app. Users select an entry (origin) toll plaza and an ex
 - The app sends a request to the **expressway.ph Toll Calculator API** (`https://www.expressway.ph/api/toll-calculator`) with the origin plaza, destination plaza, and vehicle class.
 - The API returns the total toll fee, a breakdown per expressway segment, and the RFID system required (EasyTrip or Autosweep).
 - If the trip passes through multiple expressways (e.g., NLEX → Skyway Stage 3), the result shows each segment separately with its corresponding toll.
-- Results appear in a **bottom sheet modal** that slides up from the bottom of the screen, keeping the calculator form visible behind it.
+- Results appear in a **bottom sheet modal** that slides up from the bottom of the screen with a spring animation, keeping the calculator form visible behind it. Tapping the backdrop or "Start a new calculation" closes the sheet.
 
 **Where the toll data comes from:**
 Toll fees are sourced from the official **expressway.ph** API, which reflects the rates set by the Toll Regulatory Board (TRB) of the Philippines. The app does not hardcode toll amounts — it fetches them live from the API to ensure accuracy.
@@ -36,7 +49,7 @@ Toll fees are sourced from the official **expressway.ph** API, which reflects th
 ### 2. Alternative Routes
 
 **What it does:**
-After calculating a toll, the app also shows **alternative routes** (if available) so users can compare different paths and choose the most cost-effective one.
+After calculating a toll, the app shows **alternative routes** (if available) so users can compare different paths and choose the most cost-effective one.
 
 **How it works:**
 - The expressway.ph API returns alternative route options alongside the main route.
@@ -54,9 +67,10 @@ Displays an interactive map of the driving route between the selected origin and
 - Each toll plaza in the app has stored GPS coordinates (latitude and longitude).
 - When a route is calculated, the app calls the **OSRM (Open Source Routing Machine)** API (`https://router.project-osrm.org`) using the coordinates of the entry and exit plazas.
 - OSRM returns the actual road geometry (a series of GPS points) of the driving route.
-- The app renders this as an animated polyline on a dark-themed map using **Leaflet** (rendered inside a WebView), showing the exact path the motorist would take.
+- The app renders this as an **animated polyline** on a dark-themed map using **Leaflet** (rendered inside a WebView), showing the exact path the motorist would take on the expressway.
 - Plaza markers are shown at entry and exit points with color-coded dots (green = start, red = end, yellow = intermediate).
-- Users can pan and pinch-to-zoom the map, and tap "Open in Google Maps" to get turn-by-turn navigation.
+- Users can pan and pinch-to-zoom the map.
+- A **"Open in Google Maps"** button below the map launches Google Maps with the full route pre-loaded for turn-by-turn navigation.
 
 ---
 
@@ -66,8 +80,7 @@ Displays an interactive map of the driving route between the selected origin and
 After calculating a toll, the app estimates the **total distance**, **estimated travel time (ETA)**, and **fuel consumption** for the trip — personalized to the user's saved vehicle if available.
 
 **How it works:**
-- The app calls the OSRM API for each segment of the trip to get the driving distance (in km) and duration (in minutes).
-- These are summed across all segments to get the total trip distance and ETA.
+- The app calls the OSRM API for each segment of the trip to get the driving distance (in km) and duration (in minutes), then sums them across all segments.
 - **Fuel consumption** is estimated using a piecewise efficiency curve based on engine displacement (cc):
 
 | Engine Size | Estimated Highway Efficiency (Class 1) |
@@ -82,7 +95,8 @@ After calculating a toll, the app estimates the **total distance**, **estimated 
 | 3000cc+ | ~9 km/L |
 
 - **Diesel engines** receive a **+20% efficiency bonus** over gasoline at highway speeds.
-- **Electric vehicles** return 0 liters — no fuel cost is calculated.
+- **Electric vehicles** return 0 liters — no fuel cost is calculated at all.
+- **LPG and Hybrid** vehicles use the gasoline curve as a baseline.
 - A **speed efficiency multiplier** is applied based on average route speed:
   - Below 40 kph → 75% (heavy traffic)
   - 40–60 kph → 90%
@@ -90,7 +104,9 @@ After calculating a toll, the app estimates the **total distance**, **estimated 
   - 80–100 kph → 95%
   - Above 100 kph → 88% (higher burn at high speed)
 - Formula: `Gas (L) = Distance (km) ÷ (Engine km/L × Speed Multiplier)`
-- If the user has no saved vehicle, the app falls back to class-based defaults (Class 1 = 15 km/L, Class 2 = 8 km/L, Class 3 = 6 km/L).
+- If the user has no saved vehicle, the app falls back to class-based defaults:
+  - Class 1 = 15 km/L, Class 2 = 8 km/L, Class 3 = 6 km/L
+- The stat tiles (ETA, Distance, Gas) show **skeleton shimmer** placeholders while the OSRM data is loading.
 
 ---
 
@@ -103,14 +119,15 @@ Helps users split the total trip cost (toll + fuel) among multiple passengers.
 - After a toll is calculated, the Trip Cost Sharing panel appears inside the result sheet.
 - The user inputs the **current fuel price per liter** and the **number of passengers** (1–20).
 - Default fuel price is automatically set based on the saved vehicle's fuel type:
-  - Gasoline → ₱65/L default
+  - Gasoline / LPG / Hybrid → ₱65/L default
   - Diesel → ₱60/L default
-  - Electric → fuel section is hidden entirely
+  - Electric → fuel section is hidden entirely, only toll is split
 - The app computes:
   - **Fuel cost** = Fuel liters × Fuel price per liter
   - **Total trip cost** = Toll fee + Fuel cost
   - **Cost per person** = Total trip cost ÷ Number of passengers
 - A vehicle badge shows which saved vehicle's specs are being used for the estimate, including the effective km/L rate.
+- If no vehicle is saved, a grey badge says *"Using default estimate — save a vehicle for better accuracy"*.
 
 ---
 
@@ -121,16 +138,18 @@ Allows signed-in users to save their vehicle details so the app can calculate mo
 
 **How it works:**
 - Users manually enter their vehicle details:
-  - **Nickname** (e.g., "My Innova", "Work Truck")
-  - **Year**, **Make**, **Model**
-  - **Engine Displacement** in cc (for ICE/Hybrid vehicles)
-  - **Battery Capacity** in kWh (for Electric vehicles)
+  - **Nickname** (e.g., "My Innova", "Work Truck") — max 40 characters
+  - **Year** — 4-digit year
+  - **Make** — e.g., Toyota, Honda
+  - **Model** — e.g., Vios, Fortuner
+  - **Engine Displacement** in cc — for ICE, LPG, and Hybrid vehicles
+  - **Battery Capacity** in kWh — for Electric vehicles only
   - **Fuel Type** — Gasoline, Diesel, LPG, Electric, or Hybrid
-  - **Toll Vehicle Class** (Class 1 / 2 / 3)
-- Vehicle data is stored in **Supabase** under the user's account.
-- The first saved vehicle is automatically used for fuel calculations in the toll result.
-- Users can edit or delete saved vehicles from the Vehicles tab in the Profile page.
-- Electric vehicles automatically disable all fuel-related calculations and display "Electric — no fuel cost" throughout the app.
+  - **Toll Vehicle Class** — Class 1, 2, or 3
+- Vehicle data is stored in the `saved_vehicles` table in **Supabase** under the user's account.
+- The **first saved vehicle** is automatically used for fuel calculations in the toll result.
+- Users can **edit** or **delete** saved vehicles from the Vehicles tab in the Profile page.
+- Electric vehicles automatically disable all fuel-related calculations and display *"Electric — no fuel cost"* throughout the app.
 
 ---
 
@@ -140,10 +159,11 @@ Allows signed-in users to save their vehicle details so the app can calculate mo
 Allows signed-in users to bookmark frequently used routes for quick access.
 
 **How it works:**
-- After calculating a toll, users can save the route with a custom label (e.g., "Daily Commute", "Weekend Trip to Batangas") directly from the result sheet — no modal required.
-- Saved routes are stored in **Supabase** linked to the user's account.
-- On the home screen, up to 5 saved routes appear as quick-access cards — tapping one auto-fills the calculator with that route's origin, destination, and vehicle class.
-- Users can edit the label or delete saved routes from the Saved tab in the Profile page.
+- After calculating a toll, users can save the route with a custom label (e.g., "Daily Commute") directly from the result sheet using an inline text input — no separate modal required.
+- A checkmark animation confirms the save.
+- Saved routes are stored in the `saved_routes` table in **Supabase** linked to the user's account.
+- On the home screen, up to 5 saved routes appear as **quick-access cards** — tapping one auto-fills the calculator with that route's origin, destination, and vehicle class.
+- Users can **edit the label** or **delete** saved routes from the Saved tab in the Profile page.
 
 ---
 
@@ -153,13 +173,13 @@ Allows signed-in users to bookmark frequently used routes for quick access.
 Keeps a log of all toll calculations the user has made, with monthly spending analytics.
 
 **How it works:**
-- Every time a toll is calculated, the result is automatically saved to the user's history in **Supabase**.
+- Every time a toll is calculated, the result is automatically saved to the `toll_history` table in **Supabase**.
 - The History section (inside the Profile tab) shows:
-  - A **bar chart** of total toll spending for the last 6 months (grouped by month).
+  - A **bar chart** of total toll spending for the last 6 months (grouped by month), with peso amounts shown above each bar.
   - A list of all past calculations showing origin, destination, vehicle class, toll amount, and date/time.
-- Users can **export their history as a CSV file** for use in spreadsheets or reports.
+- Users can **export their history as a CSV file** (comma-separated values) for use in spreadsheets or reports.
 - Users can also **clear all history** with a confirmation prompt.
-- History is only available to signed-in users.
+- History is only available to signed-in users — guest users cannot access this section.
 
 ---
 
@@ -172,12 +192,13 @@ Lets users save their RFID card numbers and check their balance via SMS with one
 - The Philippines uses two RFID systems for expressway toll payment:
   - **EasyTrip** — used on NLEX, SCTEX, TPLEX, NLEX Connector, and NLEX Harbor Link
   - **Autosweep** — used on SLEX, STAR Tollway, Skyway, CALAX, CAVITEX, MCX, and NAIAX
-- Users can add their 16-digit RFID card number with a custom nickname (e.g., "My EasyTrip Card").
-- Cards are stored securely in **Supabase** under the user's account.
+- Users can add their **16-digit RFID card number** with a custom nickname (e.g., "My EasyTrip Card").
+- Cards are stored securely in the `rfid_cards` table in **Supabase** under the user's account.
 - To check balance, the user taps **"Check Balance via SMS"** — the app opens the phone's SMS app pre-filled with the correct number and message format:
   - EasyTrip: SMS `BAL <card_number>` to **2929**
   - Autosweep: SMS `BAL <card_number>` to **29290**
-- Users can copy their card number to clipboard or delete saved cards.
+- Users can also **copy** their card number to clipboard or **delete** saved cards.
+- Each RFID system section shows the expressways it covers, the hotline number, and a link to the official website.
 
 ---
 
@@ -194,8 +215,9 @@ An AI-powered chatbot that answers questions about Philippine expressways in a f
   - *"Ilang plazas ang SLEX?"* (How many plazas does SLEX have?)
   - *"Ano ang speed limit sa Skyway?"* (What is the speed limit on Skyway?)
 - TollBot is instructed **not to guess toll amounts** — it always directs users to use the calculator for exact fees.
-- The chat supports multi-turn conversation (it remembers previous messages in the session).
-- Suggested questions are shown at the start to help users get started.
+- The chat supports **multi-turn conversation** (it remembers previous messages in the session).
+- **Suggested questions** are shown at the start to help users get started.
+- The Gemini API key is stored securely in environment variables and never hardcoded in source code.
 
 ---
 
@@ -210,36 +232,42 @@ Allows users to create an account and log in to access personalized features, wh
   - **Sign up** with email and password
   - **Confirm their email** via a verification link
   - **Log in** with their credentials
-  - **Reset their password** via email
-- **Guest/anonymous mode** is the default — when the app is opened for the first time (after onboarding), the user is automatically signed in as a guest and taken directly to the Home screen. No login required to use the calculator.
-- Guest users can use the toll calculator, view the map, and use TollBot freely.
-- Features that require an account (history, saved routes, saved vehicles, RFID cards) show a sign-in prompt when accessed by a guest.
-- The Profile tab shows a guest screen with Sign In / Sign Up buttons when the user is not authenticated.
+  - **Reset their password** via email (link sent to inbox)
+- **Guest/anonymous mode is the default** — when the app is opened for the first time (after onboarding), the user is automatically signed in as a guest and taken directly to the Home screen. No login is required to use the calculator.
+- Guest users can freely use: toll calculator, route map, trip stats, TollBot, and Explore.
+- Features that require an account: history, saved routes, saved vehicles, RFID cards — these show a sign-in prompt when accessed by a guest.
+- The Profile tab shows a dedicated guest screen with **Sign In** and **Sign Up** buttons.
 
 ---
 
 ### 12. Onboarding
 
 **What it does:**
-A 4-slide introduction shown the first time the app is opened, explaining the app's key features.
+A 4-slide introduction shown the first time the app is opened, explaining the app's key features before the user starts.
 
 **How it works:**
 - Shown only once — after completion, `onboarding_done` is saved to AsyncStorage so it never shows again.
-- 4 animated slides with parallax fade and slide transitions:
+- 4 animated slides with parallax fade and translateY transitions:
   1. **Welcome** — shows the MagkanoToll logo
   2. **Route Planner** — explains the toll calculator
   3. **RFID & Cost** — explains cost splitting and RFID wallets
   4. **History** — explains saved routes and history
-- After tapping "Get Started" or "Skip", the user is automatically signed in as a guest and taken to the Home screen.
+- Uses only the app's primary (`#171717`) and accent (`#ffc400`) colors with white text.
+- HugeIcons used for slides 2–4; the app logo is shown on slide 1.
+- Animated dots at the bottom indicate the current slide.
+- Users can tap **"Next"** to advance or **"Skip for now"** to jump to the end.
+- After tapping **"Get Started"** or **"Skip"**, the user is automatically signed in as a guest and taken to the Home screen.
 
 ---
 
-### 13. Expressway Information
+### 13. Expressway Information (Explore Tab)
 
 **What it does:**
 Provides reference information about each expressway covered by the app, including toll rate ranges and traffic update links.
 
-**Data available per expressway:**
+**Three sections:**
+
+**Info** — expandable cards for each expressway showing:
 
 | Field | Description |
 |---|---|
@@ -249,15 +277,14 @@ Provides reference information about each expressway covered by the app, includi
 | Length (km) | Total length of the expressway |
 | Speed Limit | Minimum and maximum speed in kph |
 | Operator | Company that manages the expressway |
-| Hotline | Customer service contact number |
+| Hotline | Tappable customer service number |
 | RFID System | EasyTrip or Autosweep |
-| Social Media | Official Facebook and Twitter links |
-| Plaza List | All toll plazas with GPS coordinates |
+| Social Media | Tappable Facebook and Twitter/X links |
+| Plaza List | All toll plazas listed |
 
-**Three sections in the Explore tab:**
-- **Info** — full expressway details with expandable cards
-- **Rates** — approximate toll rate ranges per vehicle class (Class 1 / 2 / 3)
-- **Traffic** — links to official expressway and government social media accounts for real-time traffic updates
+**Rates** — approximate toll rate ranges per vehicle class (Class 1 / 2 / 3) for all 13 expressways, with a note that exact amounts require the calculator.
+
+**Traffic** — links to official expressway and government social media accounts (MMDA, NLEX, SLEX/Skyway, DPWH, LTO) for real-time traffic updates.
 
 **Expressways covered:**
 
@@ -279,32 +306,55 @@ Provides reference information about each expressway covered by the app, includi
 
 ---
 
-### 14. Profile Page
+### 14. Settings
 
 **What it does:**
-A unified profile page that consolidates the user's account info, history, saved routes, and vehicles in one place.
+Allows signed-in users to manage their account and app preferences.
 
 **How it works:**
-- Accessible via the Profile tab in the bottom navigation bar.
-- Contains three inner section tabs:
-  - **History** — monthly spending bar chart + full calculation list with export/clear
+- Accessible via the settings icon (⚙) on the Profile tab header.
+- **Account section:**
+  - **Change Password** — set a new password (minimum 6 characters, confirmation required)
+  - **Two-Factor Authentication** — placeholder for a future 2FA feature
+- **Notifications section:**
+  - Toggle for **Push Notifications**
+  - Toggle for **Email Notifications**
+- **About section:**
+  - Displays the current **App Version** (1.0.0)
+- **Danger Zone:**
+  - **Delete Account** — permanently deletes the user's account and all associated data (history, saved routes, vehicles, RFID cards). Requires confirmation. Cannot be undone.
+
+---
+
+### 15. Profile Page
+
+**What it does:**
+A unified page that consolidates the user's account info, history, saved routes, and vehicles in one place.
+
+**How it works:**
+- Accessible via the **Profile tab** in the bottom navigation bar.
+- **Avatar** — tap to change profile photo (uploaded to Supabase Storage). Shows initials if no photo is set.
+- **Name** — tap the pencil icon to edit display name.
+- **Info card** — shows full name and email.
+- **Three inner section tabs:**
+  - **History** — monthly spending bar chart (last 6 months) + full calculation list with Export CSV and Clear All
   - **Saved** — all saved routes with edit label and delete
   - **Vehicles** — saved vehicle cards with edit and delete
-- Users can tap their avatar to change their profile photo (uploaded to Supabase Storage).
-- Users can tap the pencil icon next to their name to edit their display name.
-- Settings button in the top right navigates to the Settings page.
-- Logout button at the bottom with a confirmation modal.
-- Guest users see a lock screen with Sign In / Sign Up buttons instead of the full profile.
+- **Logout** button at the bottom with a confirmation modal.
+- **Guest users** see a lock screen with Sign In / Sign Up buttons — no profile data is shown.
+- All loading states use **skeleton shimmer** placeholders instead of spinners.
 
 ---
 
 ## UI/UX Details
 
-- **Skeleton loading screens** — all loading states use animated shimmer skeletons instead of spinners, including the toll result stat tiles (ETA, Distance, Gas), history list, saved routes list, and vehicle list.
-- **Bottom sheet modal** — toll results slide up from the bottom as a full-height modal sheet; tapping the backdrop or "Start a new calculation" closes it with a smooth animation.
-- **AppModal** — all confirmation dialogs, error messages, and warnings use a consistent custom modal component instead of native `Alert`.
+- **Skeleton loading** — all loading states use animated shimmer skeletons instead of spinners: toll result stat tiles (ETA, Distance, Gas), history list, saved routes list, and vehicle list.
+- **Bottom sheet modal** — toll results slide up from the bottom as a full-height (92% screen) modal sheet with a spring animation. A drag handle sits at the top. Tapping the backdrop or the reset button closes it with a slide-down animation.
+- **AppModal** — all confirmation dialogs, error messages, warnings, and success messages use a consistent custom modal component instead of native `Alert`.
+- **Inline save** — saving a route uses an inline text input with an animated checkmark confirmation, no separate modal.
 - **Fonts** — Lufga font family (Thin through Black weights) used throughout.
-- **Colors** — primary `#171717` (dark), accent `#ffc400` (yellow), white, and neutral grays.
+- **Colors** — primary `#171717` (dark), accent `#ffc400` (yellow), white, and neutral grays. Onboarding uses only these colors.
+- **Icons** — HugeIcons (`@hugeicons/react-native` + `@hugeicons/core-free-icons`) used throughout.
 
 ---
 
@@ -320,8 +370,9 @@ A unified profile page that consolidates the user's account info, history, saved
 | Routing / Maps | OSRM (Open Source Routing Machine) + Leaflet (WebView) |
 | AI Chatbot | Google Gemini 2.5 Flash |
 | State Management | Zustand |
-| Charts | react-native-gifted-charts |
-| Fonts | Lufga (custom TTF) |
+| Charts | react-native-gifted-charts (BarChart) |
+| Fonts | Lufga (custom TTF, 9 weights) |
+| Icons | HugeIcons |
 
 ---
 
@@ -329,12 +380,12 @@ A unified profile page that consolidates the user's account info, history, saved
 
 | Table | Purpose |
 |---|---|
-| `toll_history` | Stores all toll calculations per user |
-| `saved_routes` | Stores bookmarked routes per user |
-| `saved_vehicles` | Stores vehicle details per user |
-| `rfid_cards` | Stores RFID card numbers per user |
+| `toll_history` | Stores all toll calculations per user (origin, destination, vehicle class, total toll, segments, RFID breakdown) |
+| `saved_routes` | Stores bookmarked routes (label, origin, destination, vehicle class, total toll) per user |
+| `saved_vehicles` | Stores vehicle details (nickname, year, make, model, engine cc, battery kWh, fuel type, vehicle class) per user |
+| `rfid_cards` | Stores RFID card numbers (system, card number, nickname) per user |
 
-All tables use **Row Level Security (RLS)** — users can only read, insert, update, and delete their own rows.
+All tables use **Row Level Security (RLS)** — users can only read, insert, update, and delete their own rows. Anonymous/guest users are blocked from all tables.
 
 ---
 

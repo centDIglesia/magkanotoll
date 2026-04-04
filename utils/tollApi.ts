@@ -1,3 +1,7 @@
+import { useVehicleStore } from "@/stores/useVehicleStore";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 export type VehicleClass = 1 | 2 | 3;
 
 export interface TollSegment {
@@ -45,10 +49,46 @@ export interface TripStats {
   effectiveKmL: number;
 }
 
+// ─── Default Vehicle Resolver ─────────────────────────────────────────────────
+
+interface ResolvedVehicleParams {
+  vehicleClass: VehicleClass;
+  engineCc?: number;
+  fuelType?: string;
+}
+
+/**
+ * Merges explicit overrides with the saved default vehicle.
+ * Explicit values always win; missing values fall back to the default vehicle.
+ */
+function resolveVehicleParams(
+  overrides?: Partial<ResolvedVehicleParams>,
+): ResolvedVehicleParams {
+  const defaultVehicle = useVehicleStore.getState().getDefaultVehicle();
+
+  const vehicleClass: VehicleClass =
+    overrides?.vehicleClass ?? defaultVehicle?.vehicle_class ?? 1;
+
+  const fuelType: string | undefined =
+    overrides?.fuelType ?? defaultVehicle?.fuel_type ?? undefined;
+
+  const isElectric = fuelType?.toLowerCase().includes("electric") ?? false;
+
+  const engineCc: number | undefined =
+    overrides?.engineCc ??
+    (!isElectric && defaultVehicle?.engine_cc
+      ? parseFloat(defaultVehicle.engine_cc)
+      : undefined);
+
+  return { vehicleClass, engineCc, fuelType };
+}
+
+// ─── Fuel Efficiency ──────────────────────────────────────────────────────────
+
 const GAS_CONSUMPTION_BASE: Record<VehicleClass, number> = {
   1: 15, // km/L — sedan/SUV highway baseline
-  2: 8,  // km/L — bus/jeep/light truck
-  3: 6,  // km/L — heavy truck/trailer
+  2: 8, // km/L — bus/jeep/light truck
+  3: 6, // km/L — heavy truck/trailer
 };
 
 /**
@@ -64,14 +104,14 @@ export function kmLFromEngineCc(
   if (cc <= 0) return base;
 
   let kmL: number;
-  if (cc <= 660)       kmL = base + 5.0;
+  if (cc <= 660) kmL = base + 5.0;
   else if (cc <= 1000) kmL = base + 3.5;
   else if (cc <= 1300) kmL = base + 2.0;
   else if (cc <= 1600) kmL = base + 0.5;
   else if (cc <= 2000) kmL = base - 1.5;
   else if (cc <= 2500) kmL = base - 3.0;
   else if (cc <= 3000) kmL = base - 4.5;
-  else                 kmL = base - 6.0;
+  else kmL = base - 6.0;
 
   if (fuelType?.toLowerCase().includes("diesel")) kmL *= 1.2;
 
@@ -79,19 +119,27 @@ export function kmLFromEngineCc(
 }
 
 function speedEfficiencyMultiplier(avgSpeedKph: number): number {
-  if (avgSpeedKph <= 40)  return 0.75;
-  if (avgSpeedKph <= 60)  return 0.9;
-  if (avgSpeedKph <= 80)  return 1.0;
+  if (avgSpeedKph <= 40) return 0.75;
+  if (avgSpeedKph <= 60) return 0.9;
+  if (avgSpeedKph <= 80) return 1.0;
   if (avgSpeedKph <= 100) return 0.95;
   return 0.88;
 }
 
+// ─── Trip Stats ───────────────────────────────────────────────────────────────
+
 export async function fetchOsrmTripStats(
   segments: TollSegment[],
-  vehicleClass: VehicleClass,
-  engineCc?: number,
-  fuelType?: string,
+  vehicleClassOverride?: VehicleClass,
+  engineCcOverride?: number,
+  fuelTypeOverride?: string,
 ): Promise<TripStats> {
+  const { vehicleClass, engineCc, fuelType } = resolveVehicleParams({
+    vehicleClass: vehicleClassOverride,
+    engineCc: engineCcOverride,
+    fuelType: fuelTypeOverride,
+  });
+
   const { getDrivingRouteBetweenPlazas } = await import("@/utils/tollData");
 
   const results = await Promise.all(
@@ -106,7 +154,6 @@ export async function fetchOsrmTripStats(
     results.reduce((sum, r) => sum + r.durationMin, 0),
   );
 
-  // Electric — no fuel consumption
   const isElectric = fuelType?.toLowerCase().includes("electric") ?? false;
   if (isElectric) {
     return { totalKm, etaMinutes, gasLiters: 0, effectiveKmL: 0 };
@@ -130,15 +177,21 @@ export async function fetchOsrmTripStats(
   };
 }
 
+// ─── Toll Fetch ───────────────────────────────────────────────────────────────
+
 const EXPRESSWAY_TOLL_API_URL = "https://www.expressway.ph/api/toll-calculator";
 
 export async function fetchExpresswayToll(
   params: TollCalculatorParams,
 ): Promise<TollCalculatorResponse> {
+  const { vehicleClass } = resolveVehicleParams({
+    vehicleClass: params.class,
+  });
+
   const url = new URL(EXPRESSWAY_TOLL_API_URL);
   url.searchParams.set("origin", params.origin);
   url.searchParams.set("dest", params.dest);
-  url.searchParams.set("class", String(params.class ?? 1));
+  url.searchParams.set("class", String(vehicleClass));
 
   const res = await fetch(url.toString(), {
     method: "GET",
@@ -147,9 +200,12 @@ export async function fetchExpresswayToll(
 
   if (!res.ok) {
     switch (res.status) {
-      case 400: throw new Error("Missing or invalid parameters.");
-      case 404: throw new Error("No route found between the given plazas.");
-      default:  throw new Error(`API error: ${res.status}`);
+      case 400:
+        throw new Error("Missing or invalid parameters.");
+      case 404:
+        throw new Error("No route found between the given plazas.");
+      default:
+        throw new Error(`API error: ${res.status}`);
     }
   }
 

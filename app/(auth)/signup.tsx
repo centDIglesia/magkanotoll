@@ -57,7 +57,7 @@ export default function SignUp() {
           <View>
             <Text className="text-xs text-muted-foreground mb-1.5" style={styles.semibold}>Full Name</Text>
             <View className="flex-row items-center bg-neutral-50 rounded-2xl px-4 border border-neutral-100">
-              <HugeiconsIcon icon={User03Icon} size={18} color="#ffc400" />
+              
               <TextInput className="flex-1 py-3.5 px-3 text-foreground" style={styles.body} placeholder="Juan dela Cruz" placeholderTextColor="#A3A3A3" value={fullName} onChangeText={setFullName} />
             </View>
           </View>
@@ -66,7 +66,7 @@ export default function SignUp() {
           <View>
             <Text className="text-xs text-muted-foreground mb-1.5" style={styles.semibold}>Email</Text>
             <View className="flex-row items-center bg-neutral-50 rounded-2xl px-4 border border-neutral-100">
-              <HugeiconsIcon icon={Mail01Icon} size={18} color="#ffc400" />
+              
               <TextInput className="flex-1 py-3.5 px-3 text-foreground" style={styles.body} placeholder="you@example.com" placeholderTextColor="#A3A3A3" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
             </View>
           </View>
@@ -75,7 +75,7 @@ export default function SignUp() {
           <View>
             <Text className="text-xs text-muted-foreground mb-1.5" style={styles.semibold}>Password</Text>
             <View className="flex-row items-center bg-neutral-50 rounded-2xl px-4 border border-neutral-100">
-              <HugeiconsIcon icon={LockPasswordIcon} size={18} color="#ffc400" />
+             
               <TextInput className="flex-1 py-3.5 px-3 text-foreground" style={styles.body} placeholder="••••••••" placeholderTextColor="#A3A3A3" secureTextEntry={!showPassword} value={password} onChangeText={setPassword} />
               <Pressable onPress={() => setShowPassword(!showPassword)}>
                 <HugeiconsIcon icon={showPassword ? ViewOffIcon : ViewIcon} size={18} color="#A3A3A3" />
@@ -87,7 +87,7 @@ export default function SignUp() {
           <View>
             <Text className="text-xs text-muted-foreground mb-1.5" style={styles.semibold}>Confirm Password</Text>
             <View className="flex-row items-center bg-neutral-50 rounded-2xl px-4 border border-neutral-100">
-              <HugeiconsIcon icon={LockPasswordIcon} size={18} color="#ffc400" />
+            
               <TextInput className="flex-1 py-3.5 px-3 text-foreground" style={styles.body} placeholder="••••••••" placeholderTextColor="#A3A3A3" secureTextEntry={!showConfirmPassword} value={confirmPassword} onChangeText={setConfirmPassword} />
               <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                 <HugeiconsIcon icon={showConfirmPassword ? ViewOffIcon : ViewIcon} size={18} color="#A3A3A3" />
@@ -100,7 +100,7 @@ export default function SignUp() {
           ) : null}
 
           {/* Terms */}
-          <Pressable className="flex-row items-start gap-3" onPress={() => setAgreedToTerms(!agreedToTerms)}>
+          <Pressable className="flex-row items-center gap-3" onPress={() => setAgreedToTerms(!agreedToTerms)}>
             <HugeiconsIcon icon={agreedToTerms ? CheckmarkSquare01Icon : SquareIcon} size={20} color={agreedToTerms ? "#ffc400" : "#A3A3A3"} />
             <Text className="text-muted-foreground text-xs flex-1 leading-5" style={styles.body}>
               I agree to the{" "}
@@ -116,7 +116,7 @@ export default function SignUp() {
             disabled={loading || !agreedToTerms}
           >
             {loading ? <ActivityIndicator color="#171717" /> : (
-              <Text className="text-accent-foreground text-base" style={styles.bold}>Create Account</Text>
+              <Text className="text-primary text-base" style={styles.bold}>Create Account</Text>
             )}
           </Pressable>
         </View>

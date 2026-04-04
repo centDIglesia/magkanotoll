@@ -158,7 +158,8 @@ export default function TollResult({
   vehicleClass: VehicleClass;
 }) {
   const { addRoute } = useSavedRoutesStore();
-  const { vehicles, fetchVehicles } = useVehicleStore();
+  // ✅ FIX 1: pull getDefaultVehicle instead of vehicles[0]
+  const { fetchVehicles, getDefaultVehicle } = useVehicleStore();
   const { isAnonymous } = useAuthStore();
   const [showRfidInfo, setShowRfidInfo] = useState(false);
   const [showBreakdownInfo, setShowBreakdownInfo] = useState(false);
@@ -172,23 +173,21 @@ export default function TollResult({
     if (!isAnonymous) fetchVehicles();
   }, [isAnonymous]);
 
-  const activeVehicle =
-    !isAnonymous && vehicles.length > 0 ? vehicles[0] : null;
-  const engineCc = activeVehicle?.engine_cc
-    ? parseInt(activeVehicle.engine_cc)
-    : undefined;
-  const fuelType = activeVehicle?.fuel_type ?? undefined;
+  // ✅ FIX 2: was vehicles[0] — now uses the user's chosen default vehicle
+  const activeVehicle = !isAnonymous ? getDefaultVehicle() : null;
   const isElectric =
     activeVehicle?.fuel_type?.toLowerCase().includes("electric") ?? false;
 
+  // ✅ FIX 3: drop engineCc/fuelType args — resolveVehicleParams inside
+  //           tollApi reads the default vehicle from the store automatically
   useEffect(() => {
     setStatsLoading(true);
     setTripStats(null);
-    fetchOsrmTripStats(displaySegments, vehicleClass, engineCc, fuelType)
+    fetchOsrmTripStats(displaySegments)
       .then(setTripStats)
       .catch(() => setTripStats(null))
       .finally(() => setStatsLoading(false));
-  }, [activeAlt, vehicleClass, engineCc, fuelType]);
+  }, [activeAlt, activeVehicle?.id]);
 
   const handleSaveRoute = async (label: string) => {
     await addRoute({
@@ -237,39 +236,90 @@ export default function TollResult({
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
               <HugeiconsIcon icon={Clock01Icon} size={16} color="#ffc400" />
               {statsLoading ? (
-                <Skeleton width={48} height={14} radius={6} style={{ marginTop: 6, marginBottom: 2, backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <Skeleton
+                  width={48}
+                  height={14}
+                  radius={6}
+                  style={{
+                    marginTop: 6,
+                    marginBottom: 2,
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                  }}
+                />
               ) : (
                 <Text className="text-white text-sm mt-1" style={styles.bold}>
                   {tripStats ? `~${tripStats.etaMinutes} min` : "N/A"}
                 </Text>
               )}
-              <Text className="text-white/50 text-[10px]" style={styles.body}>ETA</Text>
+              <Text className="text-white/50 text-[10px]" style={styles.body}>
+                ETA
+              </Text>
             </View>
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
-              <HugeiconsIcon icon={DashboardSpeed02Icon} size={16} color="#ffc400" />
+              <HugeiconsIcon
+                icon={DashboardSpeed02Icon}
+                size={16}
+                color="#ffc400"
+              />
               {statsLoading ? (
-                <Skeleton width={48} height={14} radius={6} style={{ marginTop: 6, marginBottom: 2, backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <Skeleton
+                  width={48}
+                  height={14}
+                  radius={6}
+                  style={{
+                    marginTop: 6,
+                    marginBottom: 2,
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                  }}
+                />
               ) : (
                 <Text className="text-white text-sm mt-1" style={styles.bold}>
                   {tripStats ? `~${tripStats.totalKm} km` : "N/A"}
                 </Text>
               )}
-              <Text className="text-white/50 text-[10px]" style={styles.body}>Distance</Text>
+              <Text className="text-white/50 text-[10px]" style={styles.body}>
+                Distance
+              </Text>
             </View>
             <View className="flex-1 bg-white/10 rounded-xl p-3 items-center">
               <HugeiconsIcon icon={FuelStationIcon} size={16} color="#ffc400" />
               {statsLoading && !isElectric ? (
-                <Skeleton width={48} height={14} radius={6} style={{ marginTop: 6, marginBottom: 2, backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <Skeleton
+                  width={48}
+                  height={14}
+                  radius={6}
+                  style={{
+                    marginTop: 6,
+                    marginBottom: 2,
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                  }}
+                />
               ) : (
                 <Text className="text-white text-sm mt-1" style={styles.bold}>
-                  {isElectric ? "—" : tripStats ? `~${tripStats.gasLiters.toFixed(1)}L` : "N/A"}
+                  {isElectric
+                    ? "—"
+                    : tripStats
+                      ? `~${tripStats.gasLiters.toFixed(1)}L`
+                      : "N/A"}
                 </Text>
               )}
               {statsLoading && !isElectric ? (
-                <Skeleton width={36} height={10} radius={4} style={{ marginTop: 2, backgroundColor: "rgba(255,255,255,0.15)" }} />
+                <Skeleton
+                  width={36}
+                  height={10}
+                  radius={4}
+                  style={{
+                    marginTop: 2,
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                  }}
+                />
               ) : (
                 <Text className="text-white/50 text-[10px]" style={styles.body}>
-                  {isElectric ? "Electric" : tripStats ? `${tripStats.effectiveKmL} km/L` : "Gas"}
+                  {isElectric
+                    ? "Electric"
+                    : tripStats
+                      ? `${tripStats.effectiveKmL} km/L`
+                      : "Gas"}
                 </Text>
               )}
             </View>

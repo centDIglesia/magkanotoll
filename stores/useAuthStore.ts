@@ -1,6 +1,7 @@
 import { supabase } from "@/utils/supabase";
 import { decode } from "base64-arraybuffer";
 import { create } from "zustand";
+import { makeRedirectUri } from "expo-auth-session";
 
 interface User {
   id: string;
@@ -20,6 +21,7 @@ interface AuthStore {
   signOut: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (newPassword: string) => Promise<void>;
+  resendConfirmationEmail: (email: string) => Promise<void>; 
   updateProfile: (data: { full_name?: string }) => Promise<void>;
   uploadAvatar: (uri: string, base64: string) => Promise<string>;
   deleteAccount: () => Promise<void>;
@@ -35,9 +37,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
       email,
       password,
     });
-    if (error) throw error;
-    if (!data.user.email_confirmed_at)
-      throw new Error("Please verify your email before signing in.");
+
+  
+    if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        const err = new Error("EMAIL_NOT_CONFIRMED");
+        throw err;
+      }
+      throw error;
+    }
+
+    if (!data.user.email_confirmed_at) {
+      throw new Error("EMAIL_NOT_CONFIRMED");
+    }
+
     set({
       user: {
         id: data.user.id,
@@ -53,10 +66,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   signUp: async (email, password, fullName) => {
+
+     const redirectTo = makeRedirectUri({ scheme: "magkanotoll", path: "confirm-email" });  
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: redirectTo 
+      },
     });
     if (error) throw error;
     if (data.user?.identities?.length === 0)
@@ -98,14 +116,33 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   forgotPassword: async (email) => {
+    const redirectTo = makeRedirectUri({
+      scheme: "magkanotoll",
+      path: "reset-password",
+    });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "magkanotoll://reset-password",
+      redirectTo,
     });
     if (error) throw error;
   },
 
   resetPassword: async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  },
+
+  resendConfirmationEmail: async (email) => {
+     const redirectTo = makeRedirectUri({
+       scheme: "magkanotoll",
+       path: "confirm-email",
+     });
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
     if (error) throw error;
   },
 
@@ -117,8 +154,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }));
   },
 
-  // ✅ FIXED: replaced atob() with decode() from base64-arraybuffer
-  // ✅ FIXED: safer extension extraction
   uploadAvatar: async (uri, base64) => {
     const {
       data: { user },
@@ -132,7 +167,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     const path = `avatars/${user.id}.${ext}`;
     const contentType = `image/${ext === "jpg" ? "jpeg" : ext}`;
 
-    // decode() works in React Native unlike atob()
     const arrayBuffer = decode(base64);
 
     const { error: uploadError } = await supabase.storage
