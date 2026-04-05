@@ -57,10 +57,7 @@ interface ResolvedVehicleParams {
   fuelType?: string;
 }
 
-/**
- * Merges explicit overrides with the saved default vehicle.
- * Explicit values always win; missing values fall back to the default vehicle.
- */
+
 function resolveVehicleParams(
   overrides?: Partial<ResolvedVehicleParams>,
 ): ResolvedVehicleParams {
@@ -86,15 +83,12 @@ function resolveVehicleParams(
 // ─── Fuel Efficiency ──────────────────────────────────────────────────────────
 
 const GAS_CONSUMPTION_BASE: Record<VehicleClass, number> = {
-  1: 15, // km/L — sedan/SUV highway baseline
-  2: 8, // km/L — bus/jeep/light truck
-  3: 6, // km/L — heavy truck/trailer
+  1: 15, 
+  2: 8,
+  3: 6,
 };
 
-/**
- * Piecewise highway fuel efficiency curve calibrated for PH conditions.
- * Diesel gets +20% bonus over gasoline at highway speeds.
- */
+
 export function kmLFromEngineCc(
   cc: number,
   vehicleClass: VehicleClass,

@@ -43,15 +43,12 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
 
-  // Delete account
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Notifications (local preference — extend with Supabase user_metadata as needed)
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
 
-  // Load notification preferences on mount
   useEffect(() => {
     const loadPreferences = async () => {
       try {

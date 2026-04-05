@@ -17,7 +17,6 @@ export default function Index() {
       if (session) {
         await loadSession();
 
-        // Check ban on resume for non-anonymous users
         if (!session.user.is_anonymous && session.user.email) {
           const { data: banned } = await supabase
             .from("banned_users")

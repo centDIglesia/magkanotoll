@@ -55,7 +55,7 @@ export default function TollBot() {
 
     const userMsg: ChatMessage = { role: "user", text: msg };
     const updated = [...messages, userMsg];
-    // Limit to last 50 messages to prevent memory issues
+  
     const trimmed = updated.length > 50 ? updated.slice(-50) : updated;
     setMessages(trimmed);
     setLoading(true);
@@ -81,7 +81,6 @@ export default function TollBot() {
 
   const handleRetry = () => {
     if (!lastFailedMsg) return;
-    // Remove last error message pair (user + error)
     setMessages((prev) => prev.slice(0, -2));
     handleSend(lastFailedMsg);
   };
@@ -171,7 +170,6 @@ export default function TollBot() {
           )}
         />
 
-        {/* Suggestions — show only when chat is at welcome state */}
         {messages.length === 1 && !loading && (
           <View className="px-4 pb-2">
             <Text className="text-muted-foreground text-xs mb-2 ml-1" style={styles.body}>Mga maaaring itanong:</Text>
@@ -189,7 +187,7 @@ export default function TollBot() {
           </View>
         )}
 
-        {/* Input */}
+     
         <View className="flex-row items-center gap-3 px-4 py-3 bg-white border-t border-neutral-100">
           <TextInput
             className="flex-1 bg-neutral-100 rounded-2xl px-4 py-3 text-foreground text-sm"

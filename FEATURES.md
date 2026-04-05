@@ -342,29 +342,10 @@ A unified page that consolidates the user's account info, history, saved routes,
   - **Vehicles** — saved vehicle cards with edit and delete
 - **Logout** button at the bottom with a confirmation modal.
 - **Guest users** see a lock screen with Sign In / Sign Up buttons — no profile data is shown.
-- All loading states use **skeleton shimmer** placeholders instead of spinners.
 
 ---
 
-## UI/UX Details
 
-- **Skeleton loading** — all loading states use animated shimmer skeletons instead of spinners: toll result stat tiles (ETA, Distance, Gas), history list, saved routes list, and vehicle list.
-- **Bottom sheet modal** — toll results slide up from the bottom as a full-height (92% screen) modal sheet with a spring animation. A drag handle sits at the top. Tapping the backdrop or the reset button closes it with a slide-down animation.
-- **AppModal** — all confirmation dialogs, error messages, warnings, and success messages use a consistent custom modal component instead of native `Alert`.
-- **Inline save** — saving a route uses an inline text input with an animated checkmark confirmation, no separate modal.
-- **Haptic feedback** — tactile vibrations on key interactions (success, error, button presses) using platform-aware haptics.
-- **Pull-to-refresh** — available on Profile (history/routes), RFID cards, and Admin dashboard.
-- **Empty states** — friendly messages when search returns no results or lists are empty.
-- **Loading indicators** — ActivityIndicator shown during async operations (save, delete, etc.).
-- **Confirmation dialogs** — required before destructive actions (delete vehicle, clear history, delete account).
-- **Input validation** — real-time validation for email format, password strength, card numbers, same origin/destination.
-- **Error handling** — all API calls wrapped in try-catch with user-friendly error messages.
-- **Accessibility** — labels, roles, and hints added to interactive elements for screen reader support.
-- **Fonts** — Lufga font family (Thin through Black weights) used throughout.
-- **Colors** — primary `#171717` (dark), accent `#ffc400` (yellow), white, and neutral grays. Onboarding uses only these colors.
-- **Icons** — HugeIcons (`@hugeicons/react-native` + `@hugeicons/core-free-icons`) used throughout.
-
----
 
 ## Technology Stack
 
