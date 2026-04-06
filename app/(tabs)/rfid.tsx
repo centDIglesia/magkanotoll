@@ -32,27 +32,39 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 
 const RFID_SYSTEMS = [
   {
     name: "EasyTrip" as const,
     color: "#0057A8",
-    expressways: ["NLEX", "SCTEX", "TPLEX", "NLEX Connector", "NLEX Harbor Link"],
-    smsNumber: "2929",
-    hotline: "1-800-10-EASYTRIP",
+    expressways: [
+      "NLEX",
+      "SCTEX",
+      "CAVITEX",
+      "CALAX",
+      "NLEX Connector",
+      "NLEX Harbor Link",
+    ],
+    smsNumbers: {
+      globe: "09191601553", // Works for Globe and TM
+      smart: "09191601553", // Works for Smart, Sun, and TNT
+    },
+    hotline: "1-35000",
     website: "https://www.easytrip.ph",
   },
   {
     name: "Autosweep" as const,
     color: "#E30613",
-    expressways: ["SLEX", "STAR Tollway", "Skyway", "CALAX", "CAVITEX", "MCX", "NAIAX"],
-    smsNumber: "29290",
-    hotline: "(02) 8888-7777",
-    website: "https://www.autosweep.com.ph",
+    expressways: ["SLEX", "STAR Tollway", "Skyway", "TPLEX", "MCX", "NAIAX"],
+    smsNumbers: {
+      globe: "09178608655", // For Globe and TM
+      smart: "09188608655", // For Smart, Sun, and TNT
+    },
+    hotline: "(02) 5-318-8655",
+    website: "https://autosweeprfid.com",
   },
 ];
-
-import * as Haptics from "expo-haptics";
 
 function notify(msg: string) {
   if (Platform.OS === "android") ToastAndroid.show(msg, ToastAndroid.SHORT);
@@ -66,14 +78,18 @@ export default function RfidBalance() {
   const { show, modalProps } = useAppModal();
   const [expanded, setExpanded] = useState<string | null>("EasyTrip");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addSystem, setAddSystem] = useState<"EasyTrip" | "Autosweep">("EasyTrip");
+  const [addSystem, setAddSystem] = useState<"EasyTrip" | "Autosweep">(
+    "EasyTrip",
+  );
   const [cardNumber, setCardNumber] = useState("");
   const [nickname, setNickname] = useState("");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { if (!isAnonymous) fetchCards(); }, []);
+  useEffect(() => {
+    if (!isAnonymous) fetchCards();
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -97,7 +113,11 @@ export default function RfidBalance() {
     if (!nickname.trim()) return setAddError("Please enter a nickname.");
     setSaving(true);
     try {
-      await addCard({ system: addSystem, card_number: cleaned, nickname: nickname.trim() });
+      await addCard({
+        system: addSystem,
+        card_number: cleaned,
+        nickname: nickname.trim(),
+      });
       setShowAddModal(false);
       notify("Card saved!");
     } catch (e: any) {
@@ -117,9 +137,13 @@ export default function RfidBalance() {
     });
   };
 
-  const sendSms = (card: RfidCard) => {
+  // Updated to accept the selected network
+  const sendSms = (card: RfidCard, network: "globe" | "smart") => {
     const sys = RFID_SYSTEMS.find((s) => s.name === card.system)!;
-    Linking.openURL(`sms:${sys.smsNumber}?body=${encodeURIComponent(`BAL ${card.card_number}`)}`);
+    const number = sys.smsNumbers[network];
+    Linking.openURL(
+      `sms:${number}?body=${encodeURIComponent(`BAL ${card.card_number}`)}`,
+    );
   };
 
   if (isAnonymous) {
@@ -130,10 +154,25 @@ export default function RfidBalance() {
           <View className="w-16 h-16 rounded-2xl bg-accent/15 items-center justify-center mb-2">
             <HugeiconsIcon icon={CreditCardIcon} size={32} color="#ffc400" />
           </View>
-          <Text className="text-foreground text-lg text-center" style={styles.bold}>Sign in to save your cards</Text>
-          <Text className="text-muted-foreground text-sm text-center" style={styles.body}>Save your RFID card numbers for quick balance checks</Text>
-          <Pressable className="mt-2 bg-primary rounded-2xl px-8 py-3" onPress={() => router.replace("/(auth)/login" as any)}>
-            <Text className="text-white text-sm" style={styles.bold}>Sign In</Text>
+          <Text
+            className="text-foreground text-lg text-center"
+            style={styles.bold}
+          >
+            Sign in to save your cards
+          </Text>
+          <Text
+            className="text-muted-foreground text-sm text-center"
+            style={styles.body}
+          >
+            Save your RFID card numbers for quick balance checks
+          </Text>
+          <Pressable
+            className="mt-2 bg-primary rounded-2xl px-8 py-3"
+            onPress={() => router.replace("/(auth)/login" as any)}
+          >
+            <Text className="text-white text-sm" style={styles.bold}>
+              Sign In
+            </Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -154,12 +193,19 @@ export default function RfidBalance() {
           />
         }
       >
-
         {/* Info Banner */}
         <View className="bg-accent/15 rounded-2xl p-4 mb-5 flex-row items-start gap-3">
-          <HugeiconsIcon icon={InformationCircleIcon} size={18} color="#ffc400" />
-          <Text className="text-accent-foreground text-xs flex-1 leading-5" style={styles.body}>
-            Save your RFID card numbers and check your balance via SMS with one tap. Standard SMS rates apply.
+          <HugeiconsIcon
+            icon={InformationCircleIcon}
+            size={18}
+            color="#ffc400"
+          />
+          <Text
+            className="text-accent-foreground text-xs flex-1 leading-5"
+            style={styles.body}
+          >
+            Save your RFID card numbers and check your balance via SMS with one
+            tap. Standard SMS rates apply.
           </Text>
         </View>
 
@@ -168,28 +214,60 @@ export default function RfidBalance() {
           const isOpen = expanded === sys.name;
 
           return (
-            <View key={sys.name} className="bg-white rounded-3xl border border-neutral-100 mb-4 overflow-hidden">
+            <View
+              key={sys.name}
+              className="bg-white rounded-3xl border border-neutral-100 mb-4 overflow-hidden"
+            >
               {/* Header */}
               <Pressable
                 className="flex-row items-center gap-4 p-5"
                 onPress={() => setExpanded(isOpen ? null : sys.name)}
               >
-                <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: sys.color + "20" }}>
-                  <HugeiconsIcon icon={CreditCardIcon} size={22} color={sys.color} />
+                <View
+                  className="w-12 h-12 rounded-2xl items-center justify-center"
+                  style={{ backgroundColor: sys.color + "20" }}
+                >
+                  <HugeiconsIcon
+                    icon={CreditCardIcon}
+                    size={22}
+                    color={sys.color}
+                  />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-foreground text-base" style={styles.bold}>{sys.name}</Text>
-                  <Text className="text-muted-foreground text-xs mt-0.5" style={styles.body} numberOfLines={1}>
+                  <Text
+                    className="text-foreground text-base"
+                    style={styles.bold}
+                  >
+                    {sys.name}
+                  </Text>
+                  <Text
+                    className="text-muted-foreground text-xs mt-0.5"
+                    style={styles.body}
+                    numberOfLines={1}
+                  >
                     {sys.expressways.join(" · ")}
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-2">
                   {systemCards.length > 0 && (
-                    <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: sys.color + "20" }}>
-                      <Text className="text-xs" style={[styles.bold, { color: sys.color }]}>{systemCards.length}</Text>
+                    <View
+                      className="px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: sys.color + "20" }}
+                    >
+                      <Text
+                        className="text-xs"
+                        style={[styles.bold, { color: sys.color }]}
+                      >
+                        {systemCards.length}
+                      </Text>
                     </View>
                   )}
-                  <Text className="text-muted-foreground text-lg" style={styles.body}>{isOpen ? "−" : "+"}</Text>
+                  <Text
+                    className="text-muted-foreground text-lg"
+                    style={styles.body}
+                  >
+                    {isOpen ? "−" : "+"}
+                  </Text>
                 </View>
               </Pressable>
 
@@ -197,22 +275,37 @@ export default function RfidBalance() {
                 <>
                   <View className="h-px bg-neutral-100" />
                   <View className="p-5 gap-3">
-
                     {/* Saved Cards */}
                     {loading ? (
                       <ActivityIndicator color="#ffc400" />
                     ) : systemCards.length === 0 ? (
-                      <Text className="text-muted-foreground text-sm text-center py-2" style={styles.body}>
+                      <Text
+                        className="text-muted-foreground text-sm text-center py-2"
+                        style={styles.body}
+                      >
                         No saved cards yet
                       </Text>
                     ) : (
                       systemCards.map((card) => (
-                        <View key={card.id} className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100">
+                        <View
+                          key={card.id}
+                          className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100"
+                        >
                           <View className="flex-row items-center justify-between mb-3">
                             <View className="flex-1">
-                              <Text className="text-foreground text-sm" style={styles.bold}>{card.nickname}</Text>
-                              <Text className="text-muted-foreground text-xs mt-0.5 tracking-widest" style={styles.body}>
-                                {card.card_number.replace(/(.{4})/g, "$1 ").trim()}
+                              <Text
+                                className="text-foreground text-sm"
+                                style={styles.bold}
+                              >
+                                {card.nickname}
+                              </Text>
+                              <Text
+                                className="text-muted-foreground text-xs mt-0.5 tracking-widest"
+                                style={styles.body}
+                              >
+                                {card.card_number
+                                  .replace(/(.{4})/g, "$1 ")
+                                  .trim()}
                               </Text>
                             </View>
                             <View className="flex-row gap-2">
@@ -224,26 +317,69 @@ export default function RfidBalance() {
                                   notify("Card number copied!");
                                 }}
                               >
-                                <HugeiconsIcon icon={Copy01Icon} size={14} color={sys.color} />
+                                <HugeiconsIcon
+                                  icon={Copy01Icon}
+                                  size={14}
+                                  color={sys.color}
+                                />
                               </Pressable>
                               <Pressable
                                 className="w-8 h-8 rounded-xl bg-destructive/10 items-center justify-center"
                                 onPress={() => handleDelete(card)}
                               >
-                                <HugeiconsIcon icon={Delete02Icon} size={14} color="#e7000b" />
+                                <HugeiconsIcon
+                                  icon={Delete02Icon}
+                                  size={14}
+                                  color="#e7000b"
+                                />
                               </Pressable>
                             </View>
                           </View>
-                          <TouchableOpacity
-                            className="flex-row items-center justify-center gap-2 py-3 rounded-xl"
-                            style={{ backgroundColor: sys.color }}
-                            onPress={() => sendSms(card)}
+
+                          {/* Updated UI: Network Choice Buttons */}
+                          <Text
+                            className="text-center text-xs text-muted-foreground mb-2 mt-1"
+                            style={styles.body}
                           >
-                            <HugeiconsIcon icon={Message01Icon} size={16} color="#fff" />
-                            <Text className="text-white text-xs" style={styles.bold}>
-                              Check Balance via SMS ({sys.smsNumber})
-                            </Text>
-                          </TouchableOpacity>
+                            Check Balance via SMS:
+                          </Text>
+                          <View className="flex-row items-center gap-2">
+                            <TouchableOpacity
+                              className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl"
+                              style={{ backgroundColor: sys.color }}
+                              onPress={() => sendSms(card, "globe")}
+                            >
+                              <HugeiconsIcon
+                                icon={Message01Icon}
+                                size={14}
+                                color="#fff"
+                              />
+                              <Text
+                                className="text-white text-xs"
+                                style={styles.bold}
+                              >
+                                Globe / TM
+                              </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              className="flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-xl"
+                              style={{ backgroundColor: sys.color }}
+                              onPress={() => sendSms(card, "smart")}
+                            >
+                              <HugeiconsIcon
+                                icon={Message01Icon}
+                                size={14}
+                                color="#fff"
+                              />
+                              <Text
+                                className="text-white text-xs"
+                                style={styles.bold}
+                              >
+                                Smart / TNT
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       ))
                     )}
@@ -253,15 +389,34 @@ export default function RfidBalance() {
                       className="flex-row items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-dashed border-neutral-200"
                       onPress={() => openAddModal(sys.name)}
                     >
-                      <HugeiconsIcon icon={PlusSignIcon} size={16} color="#A3A3A3" />
-                      <Text className="text-muted-foreground text-sm" style={styles.body}>Add {sys.name} Card</Text>
+                      <HugeiconsIcon
+                        icon={PlusSignIcon}
+                        size={16}
+                        color="#A3A3A3"
+                      />
+                      <Text
+                        className="text-muted-foreground text-sm"
+                        style={styles.body}
+                      >
+                        Add {sys.name} Card
+                      </Text>
                     </TouchableOpacity>
 
                     {/* Contact */}
                     <View className="flex-row justify-between pt-1">
-                      <Text className="text-muted-foreground text-xs" style={styles.body}>{sys.hotline}</Text>
+                      <Text
+                        className="text-muted-foreground text-xs"
+                        style={styles.body}
+                      >
+                        {sys.hotline}
+                      </Text>
                       <Pressable onPress={() => Linking.openURL(sys.website)}>
-                        <Text className="text-xs" style={[styles.body, { color: sys.color }]}>Website ↗</Text>
+                        <Text
+                          className="text-xs"
+                          style={[styles.body, { color: sys.color }]}
+                        >
+                          Website ↗
+                        </Text>
                       </Pressable>
                     </View>
                   </View>
@@ -273,19 +428,47 @@ export default function RfidBalance() {
       </ScrollView>
 
       {/* Add Card Modal */}
-      <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
-          <Pressable className="flex-1 bg-black/50 justify-end" onPress={() => setShowAddModal(false)}>
-            <Pressable className="bg-white rounded-t-[32px] p-6 pb-10" onPress={(e) => e.stopPropagation()}>
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          className="flex-1"
+        >
+          <Pressable
+            className="flex-1 bg-black/50 justify-end"
+            onPress={() => setShowAddModal(false)}
+          >
+            <Pressable
+              className="bg-white rounded-t-[32px] p-6 pb-10"
+              onPress={(e) => e.stopPropagation()}
+            >
               <View className="w-12 h-1 bg-neutral-200 rounded-full self-center mb-6" />
               <View className="flex-row items-center justify-between mb-5">
-                <Text className="text-foreground text-xl" style={styles.bold}>Add {addSystem} Card</Text>
-                <Pressable onPress={() => setShowAddModal(false)} className="w-8 h-8 bg-neutral-100 rounded-full items-center justify-center">
-                  <HugeiconsIcon icon={Cancel01Icon} size={16} color="#171717" />
+                <Text className="text-foreground text-xl" style={styles.bold}>
+                  Add {addSystem} Card
+                </Text>
+                <Pressable
+                  onPress={() => setShowAddModal(false)}
+                  className="w-8 h-8 bg-neutral-100 rounded-full items-center justify-center"
+                >
+                  <HugeiconsIcon
+                    icon={Cancel01Icon}
+                    size={16}
+                    color="#171717"
+                  />
                 </Pressable>
               </View>
 
-              <Text className="text-xs text-muted-foreground mb-1.5 uppercase tracking-wide" style={styles.body}>Nickname</Text>
+              <Text
+                className="text-xs text-muted-foreground mb-1.5 uppercase tracking-wide"
+                style={styles.body}
+              >
+                Nickname
+              </Text>
               <TextInput
                 className="bg-neutral-100 rounded-2xl px-4 py-3.5 text-foreground mb-4"
                 style={styles.body}
@@ -295,7 +478,12 @@ export default function RfidBalance() {
                 onChangeText={setNickname}
               />
 
-              <Text className="text-xs text-muted-foreground mb-1.5 uppercase tracking-wide" style={styles.body}>16-Digit Card Number</Text>
+              <Text
+                className="text-xs text-muted-foreground mb-1.5 uppercase tracking-wide"
+                style={styles.body}
+              >
+                16-Digit Card Number
+              </Text>
               <TextInput
                 className="bg-neutral-100 rounded-2xl px-4 py-3.5 text-foreground mb-1 tracking-widest"
                 style={styles.body}
@@ -309,12 +497,20 @@ export default function RfidBalance() {
                   setCardNumber(cleaned);
                 }}
               />
-              <Text className="text-muted-foreground text-xs mb-4 ml-1" style={styles.body}>
+              <Text
+                className="text-muted-foreground text-xs mb-4 ml-1"
+                style={styles.body}
+              >
                 Found on the back of your {addSystem} RFID card
               </Text>
 
               {addError ? (
-                <Text className="text-destructive text-xs bg-destructive/10 px-3 py-2 rounded-xl mb-4" style={styles.body}>{addError}</Text>
+                <Text
+                  className="text-destructive text-xs bg-destructive/10 px-3 py-2 rounded-xl mb-4"
+                  style={styles.body}
+                >
+                  {addError}
+                </Text>
               ) : null}
 
               <Pressable
@@ -322,8 +518,12 @@ export default function RfidBalance() {
                 onPress={handleSave}
                 disabled={saving || !cardNumber || !nickname}
               >
-                {saving ? <ActivityIndicator color="#fff" /> : (
-                  <Text className="text-white text-base" style={styles.bold}>Save Card</Text>
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white text-base" style={styles.bold}>
+                    Save Card
+                  </Text>
                 )}
               </Pressable>
             </Pressable>
